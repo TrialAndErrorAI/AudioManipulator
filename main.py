@@ -9,6 +9,7 @@ from urllib.parse import unquote
 import random
 from audio_separator.separator import Separator
 from pydub import AudioSegment
+import shutil
 print("Starting the FastAPI server...")
 separator = Separator(output_dir="/workspace/Applio/assets/audios/", vr_params= { "batch_size": 1,"window_size": 512,"aggression": 5,"enable_tta": False,"enable_post_process": False,"post_process_threshold": 0.2,"high_end_process": False })
 separator.load_model("9_HP2-UVR.pth")
@@ -136,8 +137,8 @@ async def seperate_audio(file_path: str):
 
    print("Audio separated successfully.", outputs)
    # Move the audio files to the above paths
-   os.rename(outputs[1], primary_stem_path)
-   os.rename(outputs[0], secondary_stem_path)
+   shutil.move(outputs[1], primary_stem_path)
+   shutil.move(outputs[0], secondary_stem_path)
 
    return {
       "vocal_file_path": primary_stem_path,
