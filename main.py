@@ -129,20 +129,17 @@ async def seperate_audio(file_path: str):
    print("Seperating the audio...")
    print("Loading the audio separator...")
    file_name = file_path.split('/')[-1].split('.')[0]
-   primary_stem_path = f'/workspace/Applio/assets/audios/{file_name}_vocals.wav'
-   secondary_stem_path = f'/workspace/Applio/assets/audios/{file_name}_instrumental.wav'
+   primary_stem_path = f'/workspace/Applio/assets/audios/'
+   secondary_stem_path = f'/workspace/Applio/assets/audios/'
    print("Audio separator loaded successfully.")
 
    outputs = separator.separate(file_path)
 
    print("Audio separated successfully.", outputs)
-   # Move the audio files to the above paths
-   shutil.move(outputs[1], primary_stem_path)
-   shutil.move(outputs[0], secondary_stem_path)
 
    return {
-      "vocal_file_path": primary_stem_path,
-      "instrumental_file_path":  secondary_stem_path
+      "vocal_file_path": primary_stem_path + outputs[1],
+      "instrumental_file_path":  secondary_stem_path + outputs[0]
    }
 
 @app.post("/merge_audio")
