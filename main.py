@@ -10,7 +10,7 @@ import random
 from audio_separator.separator import Separator
 from pydub import AudioSegment
 print("Starting the FastAPI server...")
-separator = Separator(output_dir="/Users/ercanozer/workspace/Applio/assets/audios/")
+separator = Separator(output_dir="/workspace/Applio/assets/audios/")
 separator.load_model("9_HP2-UVR.pth")
 app = FastAPI()
 
@@ -97,7 +97,7 @@ async def download_audio(input_url: str):
                # need a temp random filename
                filename = f"audio_{random.randint(1000, 9999)}.wav"
 
-            newPath = os.path.join('/Users/ercanozer/workspace/Applio/assets/audios/', filename)
+            newPath = os.path.join('/workspace/Applio/assets/audios/', filename)
             print("Downloading audio to:", newPath)
             os.makedirs(os.path.dirname(newPath), exist_ok=True)
 
@@ -128,8 +128,8 @@ async def seperate_audio(file_path: str):
    print("Seperating the audio...")
    print("Loading the audio separator...")
    file_name = file_path.split('/')[-1].split('.')[0]
-   primary_stem_path = f'/Users/ercanozer/workspace/Applio/assets/audios/{file_name}_vocals.wav'
-   secondary_stem_path = f'/Users/ercanozer/workspace/Applio/assets/audios/{file_name}_instrumental.wav'
+   primary_stem_path = f'/workspace/Applio/assets/audios/{file_name}_vocals.wav'
+   secondary_stem_path = f'/workspace/Applio/assets/audios/{file_name}_instrumental.wav'
    print("Audio separator loaded successfully.")
 
    outputs = separator.separate(file_path)
@@ -161,7 +161,7 @@ async def merge_audio(vocal_file_path: str, instrumental_file_path: str):
    vocal_file_name = vocal_file_path.split('/')[-1].split('.')[0]
 
    # Save the merged audio
-   merged_audio_path = f'/Users/ercanozer/workspace/Applio/assets/audios/{vocal_file_name}_merged.wav'
+   merged_audio_path = f'/workspace/Applio/assets/audios/{vocal_file_name}_merged.wav'
    merged_audio.export(merged_audio_path, format="wav")
 
    print("Audio merged successfully.")
