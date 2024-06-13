@@ -136,8 +136,8 @@ async def seperate_audio(file_path: str):
 
    print("Audio separated successfully.", outputs)
    # Move the audio files to the above paths
-   os.rename(outputs["vocals"], primary_stem_path)
-   os.rename(outputs["instrumental"], secondary_stem_path)
+   os.rename(outputs[1], primary_stem_path)
+   os.rename(outputs[0], secondary_stem_path)
 
    return {
       "vocal_file_path": primary_stem_path,
