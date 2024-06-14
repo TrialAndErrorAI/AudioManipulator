@@ -10,9 +10,12 @@ import random
 from audio_separator.separator import Separator
 from pydub import AudioSegment
 import shutil
+
+APPLIO_AUDIO_OUTPUT_PATH="/Users/rajan.balana/Developer/dream/Applio/assets/audios/" # workspace/Applio/assets/audios/
+
 print("Starting the FastAPI server...")
-separator = Separator(output_dir="/workspace/Applio/assets/audios/", vr_params= { "batch_size": 1,"window_size": 512,"aggression": 5,"enable_tta": False,"enable_post_process": False,"post_process_threshold": 0.2,"high_end_process": False })
-separator.load_model("9_HP2-UVR.pth")
+separator = Separator(output_dir=APPLIO_AUDIO_OUTPUT_PATH, vr_params= { "batch_size": 1,"window_size": 512,"aggression": 5,"enable_tta": False,"enable_post_process": False,"post_process_threshold": 0.2,"high_end_process": False })
+# separator.load_model("9_HP2-UVR.pth")
 app = FastAPI()
 
 
@@ -98,7 +101,7 @@ async def download_audio(input_url: str):
                # need a temp random filename
                filename = f"audio_{random.randint(1000, 9999)}.wav"
 
-            newPath = os.path.join('/workspace/Applio/assets/audios/', filename)
+            newPath = os.path.join(APPLIO_AUDIO_OUTPUT_PATH, filename)
             print("Downloading audio to:", newPath)
             os.makedirs(os.path.dirname(newPath), exist_ok=True)
 
@@ -123,25 +126,50 @@ async def download_audio(input_url: str):
       raise Exception("Failed to download audio.")
 
 
-# get the audio file path and seperate the audio and save into same folder with suffix _seperated
-@app.post("/seperate_audio")
-async def seperate_audio(file_path: str):
-   print("Seperating the audio...")
-   print("Loading the audio separator...")
-   file_name = file_path.split('/')[-1].split('.')[0]
-   primary_stem_path = f'/workspace/Applio/assets/audios/'
-   secondary_stem_path = f'/workspace/Applio/assets/audios/'
-   print("Audio separator loaded successfully.")
+async def download_audio(input_url: str):
+   # download file from url
+   response = requests.get(input_url, stream=True)
+   # get file name from url
+   filename = input_url.split('/')[-1]
+   # save the file
+   with open(APPLIO_AUDIO_OUTPUT_PATH + filename, 'wb') as f:
+      shutil.copyfileobj(response.raw, f)
+   return {
+      "file_path": APPLIO_AUDIO_OUTPUT_PATH + filename
+   }
 
+# get the audio file path and separate the audio and save into same folder with suffix _seperated
+@app.post("/separate_audio")
+async def separate_audio(request_body: dict):
+   print("Separating the audio...")
+   print("Loading the audio separator...")
+   file_path = request_body.get("file_path")
+   video_or_audio_url = request_body.get("video_or_audio_url")
+   
+   if file_path: 
+      print("Reading the audio file...")
+   elif video_or_audio_url: 
+      # detect if file is a youtube URL 
+      if "youtube.com" in video_or_audio_url or "youtu.be" in video_or_audio_url:
+         print("Downloading the audio from youtube...")
+         file_path = download_audio(video_or_audio_url).get("file_path")
+         print("Audio downloaded successfully.")
+      # if ends with mp3, download the audio
+      elif video_or_audio_url.endswith(".mp3"):
+         print("Downloading the audio from the URL...")
+         file_path = download_audio(video_or_audio_url).get("file_path")
+         print("Audio downloaded successfully.")
+         
    outputs = separator.separate(file_path)
 
    print("Audio separated successfully.", outputs)
 
    return {
-      "vocal_file_path": primary_stem_path + outputs[1],
-      "instrumental_file_path":  secondary_stem_path + outputs[0]
+      "vocal_file_path": APPLIO_AUDIO_OUTPUT_PATH + outputs[1],
+      "instrumental_file_path":  APPLIO_AUDIO_OUTPUT_PATH + outputs[0],
+      "original_file_path": file_path,
    }
-
+   
 @app.post("/merge_audio")
 async def merge_audio(vocal_file_path: str, instrumental_file_path: str):
    print("Merging the audio...")
@@ -159,7 +187,7 @@ async def merge_audio(vocal_file_path: str, instrumental_file_path: str):
    vocal_file_name = vocal_file_path.split('/')[-1].split('.')[0]
 
    # Save the merged audio
-   merged_audio_path = f'/workspace/Applio/assets/audios/{vocal_file_name}_merged.wav'
+   merged_audio_path = f'{APPLIO_AUDIO_OUTPUT_PATH}{vocal_file_name}_merged.wav'
    merged_audio.export(merged_audio_path, format="wav")
 
    print("Audio merged successfully.")
