@@ -157,7 +157,7 @@ async def separate_audio(request_body: dict):
          file_path = res["file_path"]
          print("Audio downloaded successfully. Saved in:", file_path)
       # if ends with mp3, download the audio
-      elif video_or_audio_url.endswith(".mp3"):
+      elif video_or_audio_url.endswith(".mp3") or video_or_audio_url.endswith(".wav"):
          print("Downloading the audio from the URL..., URL:", video_or_audio_url)
          res = await download_audio_file(video_or_audio_url)
          file_path = res["file_path"]
