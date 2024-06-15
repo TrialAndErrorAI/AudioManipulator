@@ -151,14 +151,14 @@ async def separate_audio(request_body: dict):
    elif video_or_audio_url: 
       # detect if file is a youtube URL 
       if "youtube.com" in video_or_audio_url or "youtu.be" in video_or_audio_url:
-         print("Downloading the audio from youtube...")
-         file_path = download_audio(video_or_audio_url).get("file_path")
-         print("Audio downloaded successfully.")
+         print("Downloading the audio from youtube..., URL:", video_or_audio_url)
+         file_path = download_audio(video_or_audio_url)
+         print("Audio downloaded successfully. Saved in:", file_path)
       # if ends with mp3, download the audio
       elif video_or_audio_url.endswith(".mp3"):
-         print("Downloading the audio from the URL...")
-         file_path = download_audio(video_or_audio_url).get("file_path")
-         print("Audio downloaded successfully.")
+         print("Downloading the audio from the URL..., URL:", video_or_audio_url)
+         file_path = download_audio(video_or_audio_url)
+         print("Audio downloaded successfully. Saved in:", file_path)
          
    outputs = separator.separate(file_path)
 
