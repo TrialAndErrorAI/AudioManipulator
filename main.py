@@ -126,7 +126,7 @@ async def download_audio(input_url: str):
       raise Exception("Failed to download audio.")
 
 
-async def download_audio(input_url: str):
+async def download_audio_file(input_url: str):
    # download file from url
    response = requests.get(input_url, stream=True)
    # get file name from url
@@ -157,7 +157,7 @@ async def separate_audio(request_body: dict):
       # if ends with mp3, download the audio
       elif video_or_audio_url.endswith(".mp3"):
          print("Downloading the audio from the URL..., URL:", video_or_audio_url)
-         file_path = download_audio(video_or_audio_url)
+         file_path = download_audio_file(video_or_audio_url)
          print("Audio downloaded successfully. Saved in:", file_path)
          
    outputs = separator.separate(file_path)
