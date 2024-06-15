@@ -16,7 +16,7 @@ APPLIO_AUDIO_OUTPUT_PATH="workspace/Applio/assets/audios/"
 
 print("Starting the FastAPI server...")
 separator = Separator(output_dir=APPLIO_AUDIO_OUTPUT_PATH, vr_params= { "batch_size": 1,"window_size": 512,"aggression": 5,"enable_tta": False,"enable_post_process": False,"post_process_threshold": 0.2,"high_end_process": False })
-# separator.load_model("9_HP2-UVR.pth")
+separator.load_model("9_HP2-UVR.pth")
 app = FastAPI()
 
 
