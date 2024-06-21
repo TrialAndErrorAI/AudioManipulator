@@ -126,7 +126,7 @@ async def download_audio(input_url: str):
    if filename is None:
       raise Exception("Failed to download audio.")
 
-
+@app.post("/download_audio_file")
 async def download_audio_file(input_url: str):
    # download file from url
    response = requests.get(input_url, stream=True)
