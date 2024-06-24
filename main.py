@@ -12,7 +12,9 @@ from pydub import AudioSegment
 import shutil
 
 # APPLIO_AUDIO_OUTPUT_PATH="/Users/rajan.balana/Developer/dream/Applio/assets/audios/"
-APPLIO_AUDIO_OUTPUT_PATH="/workspace/Applio/assets/audios/"
+APPLIO_ASSETS_PATH="/workspace/Applio/assets/"
+APPLIO_AUDIO_OUTPUT_PATH= APPLIO_ASSETS_PATH + "audios/"
+APPLIO_DATASET_OUTPUT_PATH= APPLIO_ASSETS_PATH + "datasets/"
 
 print("Starting the FastAPI server...")
 separator = Separator(output_dir=APPLIO_AUDIO_OUTPUT_PATH, vr_params= { "batch_size": 1,"window_size": 512,"aggression": 5,"enable_tta": False,"enable_post_process": False,"post_process_threshold": 0.2,"high_end_process": False })
@@ -137,6 +139,22 @@ async def download_audio_file(input_url: str):
       shutil.copyfileobj(response.raw, f)
    return {
       "file_path": APPLIO_AUDIO_OUTPUT_PATH + filename
+   }
+   
+# download a dataset zip file from the url and extract it to APPLIO_DATASET_OUTPUT_PATH
+@app.post("/download_dataset")
+async def download_dataset(input_url: str):
+   # download file from url
+   response = requests.get(input_url, stream=True)
+   # get file name from url
+   filename = input_url.split('/')[-1]
+   # save the file
+   with open(APPLIO_DATASET_OUTPUT_PATH + filename, 'wb') as f:
+      shutil.copyfileobj(response.raw, f)
+   # extract the zip file
+   shutil.unpack_archive(APPLIO_DATASET_OUTPUT_PATH + filename, APPLIO_DATASET_OUTPUT_PATH)
+   return {
+      "dataset_path": APPLIO_DATASET_OUTPUT_PATH + filename
    }
 
 # get the audio file path and separate the audio and save into same folder with suffix _seperated
