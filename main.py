@@ -202,8 +202,10 @@ async def separate_audio(request_body: dict):
    }
    
 @app.post("/merge_audio")
-async def merge_audio(vocal_file_path: str, instrumental_file_path: str):
+async def merge_audio(request_body: dict):
    print("Merging the audio...")
+   vocal_file_path = request_body.get("vocal_file_path")
+   instrumental_file_path = request_body.get("instrumental_file_path")
    vocal_audio = AudioSegment.from_wav(vocal_file_path)
    instrumental_audio = AudioSegment.from_wav(instrumental_file_path)
 
