@@ -254,7 +254,7 @@ async def get_model_files(model_id: str):
 
    return {
       "model_file_path": model_file_path,
-      "model_name": model_name,
+      "model_file_name": model_name,
       "index_file_path": index_file_path,
       "index_file_name": index_file_name
    }
