@@ -157,7 +157,9 @@ async def download_dataset(input_url: str):
    with open(APPLIO_DATASET_OUTPUT_PATH + filename, 'wb') as f:
       shutil.copyfileobj(response.raw, f)
    # extract the zip file
-   shutil.unpack_archive(APPLIO_DATASET_OUTPUT_PATH + filename, APPLIO_DATASET_OUTPUT_PATH)
+   shutil.unpack_archive(APPLIO_DATASET_OUTPUT_PATH + filename, APPLIO_DATASET_OUTPUT_PATH + filename_without_ext)
+   # delete the zip file
+   os.remove(APPLIO_DATASET_OUTPUT_PATH + filename)
    return {
       "dataset_path": APPLIO_DATASET_OUTPUT_PATH + filename_without_ext,
       "short_dataset_path": APPLIO_ASSETS_DIR + APPLIO_DATASETS_DIR + filename_without_ext
