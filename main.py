@@ -247,7 +247,7 @@ async def get_model_files(model_id: str):
       if os.path.isdir(os.path.join(APPLIO_LOGS_PATH, folder)) and model_id in folder:
          # Find the file that starts with "added" and ends with .index inside the folder
          for file in os.listdir(os.path.join(APPLIO_LOGS_PATH, folder)):
-            if file.startswith("added") and file.endswith(".index"):
+            if ( file.startswith("added") or model_id in file ) and file.endswith(".index"):
                index_file_path = os.path.join(APPLIO_LOGS_DIR, folder, file)
                index_file_name = os.path.splitext(file)[0]
                break
