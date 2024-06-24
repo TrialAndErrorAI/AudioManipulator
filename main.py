@@ -16,6 +16,8 @@ APPLIO_ROOT_PATH="/workspace/Applio/"
 APPLIO_ASSETS_DIR="assets/"
 APPLIO_AUDIO_DIR="audios/"
 APPLIO_DATASETS_DIR="datasets/"
+APPLIO_LOGS_DIR="logs/"
+APPLIO_LOGS_PATH= APPLIO_ROOT_PATH + APPLIO_LOGS_DIR
 APPLIO_ASSETS_PATH= APPLIO_ROOT_PATH + APPLIO_ASSETS_DIR
 APPLIO_AUDIO_OUTPUT_PATH= APPLIO_ASSETS_PATH + APPLIO_AUDIO_DIR
 APPLIO_DATASET_OUTPUT_PATH= APPLIO_ASSETS_PATH + APPLIO_DATASETS_DIR
@@ -225,5 +227,35 @@ async def merge_audio(vocal_file_path: str, instrumental_file_path: str):
       "merged_audio_path": merged_audio_path
    }
 
+# get index file path and model file path and name for model id 
+@app.get("/get_model_files")
+async def get_model_files(model_id: str):
+   # find file that contains the model_id and ends with .pth in the APPLIO_LOGS_PATH
+   model_file_path = None
+   model_name = None
+   index_file_path = None
+   index_file_name = None
 
+   for file in os.listdir(APPLIO_LOGS_PATH):
+      if model_id in file and file.endswith(".pth"):
+         model_file_path = APPLIO_LOGS_PATH + file
+         model_name = os.path.splitext(file)[0]
+         break
+
+   # Find the folder named as model id in APPLIO_LOGS_PATH
+   for folder in os.listdir(APPLIO_LOGS_PATH):
+      if model_id in folder:
+         # Find the file that starts with "added" and ends with .index inside the folder
+         for file in os.listdir(APPLIO_LOGS_PATH + folder):
+            if file.startswith("added") and file.endswith(".index"):
+               index_file_path = APPLIO_LOGS_PATH + folder + "/" + file
+               index_file_name = os.path.splitext(file)[0]
+               break
+
+   return {
+      "model_file_path": model_file_path,
+      "model_name": model_name,
+      "index_file_path": index_file_path,
+      "index_file_name": index_file_name
+   }
 
