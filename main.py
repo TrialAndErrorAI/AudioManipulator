@@ -300,7 +300,7 @@ async def rename_index_file(request_body: dict):
    return {
       "model_file_path": model_file_path,
       "model_file_name": model_name,
-      "index_file_path": new_index_file_path,
+      "index_file_path": short_new_index_file_path,
       "index_file_name": new_index_file_name
    }
 
