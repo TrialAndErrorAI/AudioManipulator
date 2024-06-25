@@ -242,7 +242,7 @@ async def get_model_files(model_id: str):
    for file in os.listdir(APPLIO_LOGS_PATH):
       if model_id in file and file.endswith(".pth"):
          model_file_path = os.path.join(APPLIO_LOGS_DIR, file)
-         model_name = os.path.splitext(file)[0]
+         model_name = file
          break
 
    # Find the folder named as model id in APPLIO_LOGS_PATH
