@@ -286,21 +286,17 @@ async def cleanup_files(request_body: dict):
 # write an API that would rename the index file 
 @app.post("/rename_index_file")
 async def rename_index_file(request_body: dict):
-   print("Body:", request_body)
    model_id = request_body.get("model_id")
    model_info = await get_model_files(model_id)
    index_file_path = model_info["index_file_path"]
    model_file_path = model_info["model_file_path"]
    model_name = model_info["model_file_name"]
    index_file_name = model_info["index_file_name"]
-   print("file paths:", model_file_path, index_file_path)
    full_index_file_path = APPLIO_ROOT_PATH + index_file_path
-   print("full_index_file_path:", full_index_file_path)
    new_index_file_name = request_body.get("new_index_file_name")
-   print("new_index_file_name:", new_index_file_name)
    new_index_file_path = os.path.join(os.path.dirname(full_index_file_path), new_index_file_name)
-   print("new_index_file_path:", new_index_file_path)
    os.rename(full_index_file_path, new_index_file_path)
+   short_new_index_file_path = new_index_file_path.split(APPLIO_ROOT_PATH)[1]
    return {
       "model_file_path": model_file_path,
       "model_file_name": model_name,
