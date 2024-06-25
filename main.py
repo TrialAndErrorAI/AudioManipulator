@@ -288,7 +288,7 @@ async def cleanup_files(request_body: dict):
 async def rename_index_file(request_body: dict):
    model_id = request_body.get("model_id")
    model_file_path, model_file_name, index_file_path, index_file_name = await get_model_files(model_id)
-   full_index_file_path = APPLIO_ROOT_PATH + index_file_path
+   full_index_file_path = os.path.join(APPLIO_ROOT_PATH, index_file_path)
    new_index_file_name = request_body.get("new_index_file_name")
    new_index_file_path = os.path.join(os.path.dirname(full_index_file_path), new_index_file_name)
    os.rename(full_index_file_path, new_index_file_path)
