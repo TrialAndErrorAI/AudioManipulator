@@ -293,7 +293,7 @@ async def rename_index_file(request_body: dict):
    model_name = model_info["model_file_name"]
    index_file_name = model_info["index_file_name"]
    print("file paths:", model_file_path, index_file_path)
-   full_index_file_path = os.path.join(APPLIO_ROOT_PATH, index_file_path)
+   full_index_file_path = APPLIO_ROOT_PATH + index_file_path
    print("full_index_file_path:", full_index_file_path)
    new_index_file_name = request_body.get("new_index_file_name")
    print("new_index_file_name:", new_index_file_name)
