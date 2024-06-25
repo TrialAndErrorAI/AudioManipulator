@@ -263,4 +263,14 @@ async def get_model_files(model_id: str):
       "index_file_path": index_file_path,
       "index_file_name": index_file_name
    }
+   
+# write an API that would take a list of file paths and remove them for cleanup
+@app.post("/cleanup_files")
+async def cleanup_files(request_body: dict):
+   file_paths = request_body.get("file_paths")
+   for file_path in file_paths:
+      os.remove(APPLIO_ROOT_PATH + file_path)
+   return {
+      "message": "Files removed successfully."
+   }
 
