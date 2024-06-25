@@ -10,6 +10,7 @@ import random
 from audio_separator.separator import Separator
 from pydub import AudioSegment
 import shutil
+from fileUpload import upload_file, BucketType
 
 # APPLIO_AUDIO_OUTPUT_PATH="/Users/rajan.balana/Developer/dream/Applio/assets/audios/"
 APPLIO_ROOT_PATH="/workspace/Applio/"
@@ -279,3 +280,24 @@ async def cleanup_files(request_body: dict):
       "message": "Files removed successfully."
    }
 
+# upload model and index files to the R2 server
+@app.post("/upload_model_files")
+async def upload_model_files(request_body: dict):
+   model_file_path = request_body.get("model_file_path")
+   index_file_path = request_body.get("index_file_path")
+   model_file_name = request_body.get("model_file_name")
+   index_file_name = request_body.get("index_file_name")
+
+   # upload model file
+   print("Uploading model file...")
+   full_model_file_path = APPLIO_ROOT_PATH + model_file_path
+   upload_file(model_file_path, model_file_name, BucketType.PTH_FILES)   
+
+   # upload index file
+   print("Uploading index file...")
+   full_index_file_path = APPLIO_ROOT_PATH + index_file_path
+   upload_file(index_file_path, index_file_name, BucketType.INDEX_FILES)
+
+   return {
+      "message": "Model and index files uploaded successfully."
+   }
