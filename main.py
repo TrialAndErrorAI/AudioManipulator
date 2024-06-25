@@ -267,15 +267,18 @@ async def get_model_files(model_id: str):
 # write an API that would take a list of file paths and remove them for cleanup
 @app.post("/cleanup_files")
 async def cleanup_files(request_body: dict):
-   file_paths = request_body.get("file_paths")
-   for file_path in file_paths:
-      updated_file_path = file_path
+   paths = request_body.get("paths")
+   for path in paths:
+      updated_path = path
       
-      if APPLIO_ROOT_PATH not in file_path:
-         updated_file_path = APPLIO_ROOT_PATH + file_path
+      if APPLIO_ROOT_PATH not in path:
+         updated_path = APPLIO_ROOT_PATH + path
       
       try:
-          os.remove(updated_file_path)
+         if os.path.isfile(updated_path):
+           os.remove(updated_path)
+         elif os.path.isdir(updated_path):
+           shutil.rmtree(updated_path)
       except Exception as e:
           print("An error occurred while removing the file:", e)
           continue
