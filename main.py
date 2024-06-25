@@ -294,12 +294,12 @@ async def upload_model_files(request_body: dict):
    # upload model file
    print("Uploading model file...")
    full_model_file_path = APPLIO_ROOT_PATH + model_file_path
-   upload_file(model_file_path, model_file_name, BucketType.PTH_FILES)   
+   upload_file(full_model_file_path, model_file_name, BucketType.PTH_FILES)   
 
    # upload index file
    print("Uploading index file...")
    full_index_file_path = APPLIO_ROOT_PATH + index_file_path
-   upload_file(index_file_path, index_file_name, BucketType.INDEX_FILES)
+   upload_file(full_index_file_path, index_file_name, BucketType.INDEX_FILES)
 
    return {
       "message": "Model and index files uploaded successfully."
