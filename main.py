@@ -246,16 +246,16 @@ async def get_model_files(model_id: str):
          break
 
    # Find the folder named as model id in APPLIO_LOGS_PATH
-      for folder in os.listdir(APPLIO_LOGS_PATH):
-         if os.path.isdir(os.path.join(APPLIO_LOGS_PATH, folder)) and model_id in folder:
-            # Find the file that starts with "added" and ends with .index inside the folder
-            for file in os.listdir(os.path.join(APPLIO_LOGS_PATH, folder)):
-               if (file.startswith("added") or model_id in file) and file.endswith(".index"):
-                  index_file_path = os.path.join(APPLIO_LOGS_DIR, folder, file)
-                  index_file_name = os.path.splitext(file)[0]
-               elif model_file_path is None and model_name is None and model_id in file and file.endswith(".pth"):
-                  model_file_path = os.path.join(APPLIO_LOGS_DIR, folder, file)
-                  model_name = os.path.splitext(file)[0]
+   for folder in os.listdir(APPLIO_LOGS_PATH):
+      if os.path.isdir(os.path.join(APPLIO_LOGS_PATH, folder)) and model_id in folder:
+         # Find the file that starts with "added" and ends with .index inside the folder
+         for file in os.listdir(os.path.join(APPLIO_LOGS_PATH, folder)):
+            if (file.startswith("added") or model_id in file) and file.endswith(".index"):
+               index_file_path = os.path.join(APPLIO_LOGS_DIR, folder, file)
+               index_file_name = os.path.splitext(file)[0]
+            elif model_file_path is None and model_name is None and model_id in file and file.endswith(".pth"):
+               model_file_path = os.path.join(APPLIO_LOGS_DIR, folder, file)
+               model_name = os.path.splitext(file)[0]
 
    return {
       "model_file_path": model_file_path,
