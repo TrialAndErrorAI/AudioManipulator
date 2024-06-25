@@ -275,7 +275,11 @@ async def cleanup_files(request_body: dict):
       if APPLIO_ROOT_PATH not in file_path:
          updated_file_path = APPLIO_ROOT_PATH + file_path
       
-      os.remove(updated_file_path)
+      try:
+          os.remove(updated_file_path)
+      except Exception as e:
+          print("An error occurred while removing the file:", e)
+          continue
    return {
       "message": "Files removed successfully."
    }
