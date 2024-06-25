@@ -269,7 +269,12 @@ async def get_model_files(model_id: str):
 async def cleanup_files(request_body: dict):
    file_paths = request_body.get("file_paths")
    for file_path in file_paths:
-      os.remove(APPLIO_ROOT_PATH + file_path)
+      updated_file_path = file_path
+      
+      if APPLIO_ROOT_PATH not in file_path:
+         updated_file_path = APPLIO_ROOT_PATH + file_path
+      
+      os.remove(updated_file_path)
    return {
       "message": "Files removed successfully."
    }
