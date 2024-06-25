@@ -252,10 +252,10 @@ async def get_model_files(model_id: str):
          for file in os.listdir(os.path.join(APPLIO_LOGS_PATH, folder)):
             if (file.startswith("added") or model_id in file) and file.endswith(".index"):
                index_file_path = os.path.join(APPLIO_LOGS_DIR, folder, file)
-               index_file_name = os.path.splitext(file)[0]
+               index_file_name = os.path.splitext(file)
             elif model_file_path is None and model_name is None and model_id in file and file.endswith(".pth"):
                model_file_path = os.path.join(APPLIO_LOGS_DIR, folder, file)
-               model_name = os.path.splitext(file)[0]
+               model_name = os.path.splitext(file)
 
    return {
       "model_file_path": model_file_path,
