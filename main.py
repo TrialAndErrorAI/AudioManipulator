@@ -286,6 +286,7 @@ async def cleanup_files(request_body: dict):
 # write an API that would rename the index file 
 @app.post("/rename_index_file")
 async def rename_index_file(request_body: dict):
+   print("Body:", request_body)
    model_id = request_body.get("model_id")
    model_info = await get_model_files(model_id)
    index_file_path = model_info["index_file_path"]
