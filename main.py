@@ -284,7 +284,7 @@ async def cleanup_files(request_body: dict):
    }
 
 # write an API that would rename the index file 
-@app.post("/rename_index_file")
+@app.post("/make_index_file_name_unique")
 async def rename_index_file(request_body: dict):
    model_id = request_body.get("model_id")
    model_info = await get_model_files(model_id)
@@ -293,7 +293,7 @@ async def rename_index_file(request_body: dict):
    model_name = model_info["model_file_name"]
    index_file_name = model_info["index_file_name"]
    full_index_file_path = APPLIO_ROOT_PATH + index_file_path
-   new_index_file_name = request_body.get("new_index_file_name")
+   new_index_file_name = index_file_name.replace(".index", f"_vox_{model_id}.index") # create a unique index file name to avoid file from being overwritten in R2       
    new_index_file_path = os.path.join(os.path.dirname(full_index_file_path), new_index_file_name)
    os.rename(full_index_file_path, new_index_file_path)
    short_new_index_file_path = new_index_file_path.split(APPLIO_ROOT_PATH)[1]
