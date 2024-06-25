@@ -283,6 +283,22 @@ async def cleanup_files(request_body: dict):
       "message": "Files removed successfully."
    }
 
+# write an API that would rename the index file 
+@app.post("/rename_index_file")
+async def rename_index_file(request_body: dict):
+   model_id = request_body.get("model_id")
+   model_file_path, model_file_name, index_file_path, index_file_name = get_model_files(model_id)
+   full_index_file_path = APPLIO_ROOT_PATH + index_file_path
+   new_index_file_name = request_body.get("new_index_file_name")
+   new_index_file_path = os.path.join(os.path.dirname(full_index_file_path), new_index_file_name)
+   os.rename(index_file_path, new_index_file_path)
+   return {
+      "model_file_path": model_file_path,
+      "model_file_name": model_name,
+      "index_file_path": new_index_file_path,
+      "index_file_name": new_index_file_name
+   }
+
 # upload model and index files to the R2 server
 @app.post("/upload_model_files")
 async def upload_model_files(request_body: dict):
@@ -294,7 +310,7 @@ async def upload_model_files(request_body: dict):
    # upload model file
    print("Uploading model file...")
    full_model_file_path = APPLIO_ROOT_PATH + model_file_path
-   upload_file(full_model_file_path, model_file_name, BucketType.PTH_FILES)   
+   upload_file(full_model_file_path, model_file_name, BucketType.PTH_FILES)
 
    # upload index file
    print("Uploading index file...")
