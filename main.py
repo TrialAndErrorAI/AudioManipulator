@@ -196,12 +196,16 @@ async def separate_audio(request_body: dict):
    outputs = separator.separate(file_path)
 
    print("Audio separated successfully.", outputs)
-
-   return {
+   
+   response = {
       "vocal_file_path": APPLIO_AUDIO_OUTPUT_PATH + outputs[1],
       "instrumental_file_path":  APPLIO_AUDIO_OUTPUT_PATH + outputs[0],
       "original_file_path": file_path,
    }
+   
+   print("Audio separation response", response)
+
+   return response
    
 @app.post("/merge_audio")
 async def merge_audio(request_body: dict):
