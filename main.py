@@ -11,6 +11,7 @@ from audio_separator.separator import Separator
 from pydub import AudioSegment
 import shutil
 from fileUpload import upload_file, BucketType
+import asyncio
 
 # APPLIO_AUDIO_OUTPUT_PATH="/Users/rajan.balana/Developer/dream/Applio/assets/audios/"
 APPLIO_ROOT_PATH="/workspace/Applio/"
@@ -315,15 +316,19 @@ async def upload_model_files(request_body: dict):
    model_file_name = request_body.get("model_file_name")
    index_file_name = request_body.get("index_file_name")
 
-   # upload model file
-   print("Uploading model file...")
-   full_model_file_path = APPLIO_ROOT_PATH + model_file_path
-   upload_file(full_model_file_path, model_file_name, BucketType.PTH_FILES)
+   async def upload_file_async(file_path: str, file_name: str, bucket_type: BucketType):
+      upload_file(file_path, file_name, bucket_type)
 
-   # upload index file
-   print("Uploading index file...")
-   full_index_file_path = APPLIO_ROOT_PATH + index_file_path
-   upload_file(full_index_file_path, index_file_name, BucketType.INDEX_FILES)
+   async def upload_files_parallel(model_file_path: str, model_file_name: str, index_file_path: str, index_file_name: str):
+      tasks = [
+         upload_file_async(APPLIO_ROOT_PATH + model_file_path, model_file_name, BucketType.PTH_FILES),
+         upload_file_async(APPLIO_ROOT_PATH + index_file_path, index_file_name, BucketType.INDEX_FILES)
+      ]
+      await asyncio.gather(*tasks)
+
+   # upload model and index files
+   print("Uploading model and index files...")
+   await upload_files_parallel(model_file_path, model_file_name, index_file_path, index_file_name)
 
    return {
       "message": "Model and index files uploaded successfully."
