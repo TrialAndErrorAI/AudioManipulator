@@ -20,6 +20,17 @@ from opentelemetry.exporter.otlp.proto.grpc._log_exporter import (
 from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 from opentelemetry.sdk.resources import Resource
+from opentelemetry import metrics
+from opentelemetry.exporter.otlp.proto.http.metric_exporter import OTLPMetricExporter
+from opentelemetry.sdk.metrics import MeterProvider
+from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
+from opentelemetry.sdk.resources import SERVICE_NAME, Resource
+from opentelemetry import trace
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (
+    OTLPSpanExporter as OTLPSpanExporterGRPC,
+)
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
 # APPLIO_ROOT_PATH="/Users/rajan.balana/Developer/dream/Applio/"
 APPLIO_ROOT_PATH="/workspace/Applio/"
@@ -31,10 +42,14 @@ APPLIO_LOGS_PATH= APPLIO_ROOT_PATH + APPLIO_LOGS_DIR
 APPLIO_ASSETS_PATH= APPLIO_ROOT_PATH + APPLIO_ASSETS_DIR
 APPLIO_AUDIO_OUTPUT_PATH= APPLIO_ASSETS_PATH + APPLIO_AUDIO_DIR
 APPLIO_DATASET_OUTPUT_PATH= APPLIO_ASSETS_PATH + APPLIO_DATASETS_DIR
+SERVICE_NAME= "AudioManipulator"
 
-logger_provider = LoggerProvider(
-   resource=Resource.create({"service.name": "AudioManipulator"}),
-)
+# OpenTelemetry Common Setup
+resource = Resource.create({"service.name": SERVICE_NAME})
+
+# OpenTelemetry Logging Setup 
+
+logger_provider = LoggerProvider(resource)
 
 set_logger_provider(logger_provider)
 logging.basicConfig(level=logging.INFO)
@@ -48,6 +63,24 @@ logger.addHandler(handler)
 
 # Default Handler
 logger.addHandler(logging.StreamHandler())
+
+# OpenTelemetry Metrics Setup
+
+metric_reader = PeriodicExportingMetricReader(
+   OTLPMetricExporter(endpoint="http://174.138.34.94:4318/v1/metrics")
+)
+meter_provider = MeterProvider(resource=resource, metric_readers=[metric_reader])
+metrics.set_meter_provider(meter_provider)
+
+# OpenTelemetry Traces Setup
+tracer = TracerProvider(resource=resource)
+trace.set_tracer_provider(tracer)
+
+tracer.add_span_processor(
+   BatchSpanProcessor(
+       OTLPSpanExporterGRPC(endpoint="grpc://174.138.34.94:4317", insecure=True)
+   )
+)
 
 logger.info("Starting the FastAPI server...")
 separator = Separator(output_dir=APPLIO_AUDIO_OUTPUT_PATH, vr_params= { "batch_size": 1,"window_size": 512,"aggression": 5,"enable_tta": False,"enable_post_process": False,"post_process_threshold": 0.2,"high_end_process": False })
@@ -367,4 +400,4 @@ async def upload_model_files(request_body: dict):
    }
 
 
-FastAPIInstrumentor.instrument_app(app=app)
+FastAPIInstrumentor.instrument_app(app=app, meter_provider=meter_provider, tracer_provider=tracer)
