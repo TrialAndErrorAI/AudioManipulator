@@ -1,5 +1,5 @@
 from typing import Union
-
+import logging
 from fastapi import FastAPI
 import json
 import time
@@ -12,8 +12,16 @@ from pydub import AudioSegment
 import shutil
 from fileUpload import upload_file, BucketType
 import asyncio
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from opentelemetry._logs import set_logger_provider
+from opentelemetry.exporter.otlp.proto.grpc._log_exporter import (
+    OTLPLogExporter,
+)
+from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
+from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
+from opentelemetry.sdk.resources import Resource
 
-# APPLIO_AUDIO_OUTPUT_PATH="/Users/rajan.balana/Developer/dream/Applio/assets/audios/"
+# APPLIO_ROOT_PATH="/Users/rajan.balana/Developer/dream/Applio/"
 APPLIO_ROOT_PATH="/workspace/Applio/"
 APPLIO_ASSETS_DIR="assets/"
 APPLIO_AUDIO_DIR="audios/"
@@ -24,16 +32,31 @@ APPLIO_ASSETS_PATH= APPLIO_ROOT_PATH + APPLIO_ASSETS_DIR
 APPLIO_AUDIO_OUTPUT_PATH= APPLIO_ASSETS_PATH + APPLIO_AUDIO_DIR
 APPLIO_DATASET_OUTPUT_PATH= APPLIO_ASSETS_PATH + APPLIO_DATASETS_DIR
 
-print("Starting the FastAPI server...")
+logger_provider = LoggerProvider(
+   resource=Resource.create({"service.name": "AudioManipulator"}),
+)
+
+set_logger_provider(logger_provider)
+logging.basicConfig(level=logging.INFO)
+
+exporter = OTLPLogExporter(endpoint="grpc://174.138.34.94:4317", insecure=True)
+logger_provider.add_log_record_processor(BatchLogRecordProcessor(exporter))
+handler = LoggingHandler(level=logging.INFO, logger_provider=logger_provider)
+
+logger = logging.getLogger("AudioManipulator")
+logger.addHandler(handler)
+
+# Default Handler
+logger.addHandler(logging.StreamHandler())
+
+logger.info("Starting the FastAPI server...")
 separator = Separator(output_dir=APPLIO_AUDIO_OUTPUT_PATH, vr_params= { "batch_size": 1,"window_size": 512,"aggression": 5,"enable_tta": False,"enable_post_process": False,"post_process_threshold": 0.2,"high_end_process": False })
 separator.load_model("9_HP2-UVR.pth")
 app = FastAPI()
 
-
 @app.get("/")
 def read_root():
     return {"Hello": "World"}
-
 
 @app.get("/items/{item_id}")
 def read_item(item_id: int, q: Union[str, None] = None):
@@ -78,15 +101,15 @@ async def download_audio(input_url: str):
 
          # If the response status code is 200, break out of the loop
          if response.status_code == 200:
-            print(f"Audio download request succeeded.")
+            logger.info("Audio download request succeeded.")
             break
          else:
-            print(f"Received 400 response, retrying... (Attempt {attempt + 1}/{max_retries})")
+            logger.warn(f"Received 400 response, retrying... (Attempt {attempt + 1}/{max_retries})")
 
          # Wait for 1 second before retrying
          time.sleep(1)
       except Exception as e:
-         print("An error occurred:", e)
+         logger.error(f"An error occurred: {e}")
          break
 
    # Check if the request was successful (status code 200)
@@ -100,7 +123,7 @@ async def download_audio(input_url: str):
          audio_url = response_data["url"]
 
          # Download the audio using wget
-         print("Downloading audio...")
+         logger.info("Downloading audio...")
          filename = ""
 
          responseAudio = requests.get(audio_url, stream=True)
@@ -113,21 +136,21 @@ async def download_audio(input_url: str):
                filename = f"audio_{random.randint(1000, 9999)}.wav"
 
             newPath = os.path.join(APPLIO_AUDIO_OUTPUT_PATH, filename)
-            print("Downloading audio to:", newPath)
+            logger.info(f"Downloading audio to: {newPath}")
             os.makedirs(os.path.dirname(newPath), exist_ok=True)
 
             with open(newPath, 'wb') as f:
                for chunk in responseAudio.iter_content(1024):
                   f.write(chunk)
 
-            print(f"Audio downloaded successfully. Saved as: {newPath}")
+            logger.info(f"Audio downloaded successfully. Saved as: {newPath}")
          else:
             raise Exception("Failed to download audio after several attempts.")
 
       else:
-         print("API request succeeded, but status is not 'stream'. Status:", response_data["status"])
+         logger.warn(f"API request succeeded, but status is not 'stream'. Status: {response_data['status']}")
    else:
-      print("Failed to download audio after several attempts.")
+      logger.error("Failed to download audio after several attempts.")
 
    return {
       "file_path": newPath
@@ -173,34 +196,33 @@ async def download_dataset(input_url: str):
 @app.post("/separate_audio")
 async def separate_audio(request_body: dict):
    start_time = time.time()  # Start the timer
-   print("Separating the audio...\n")
-   print("Loading the audio separator...\n")
+   logger.info("Separating the audio...\n")
    file_path = request_body.get("file_path")
    video_or_audio_url = request_body.get("video_or_audio_url")
    
    if file_path: 
-      print("Reading the audio file...\n")
+      logger.info("Reading the audio file...\n")
    elif video_or_audio_url: 
       # detect if file is a youtube URL 
       if "youtube.com" in video_or_audio_url or "youtu.be" in video_or_audio_url:
-         print("Downloading the audio from youtube..., URL:", video_or_audio_url, "\n")
+         logger.info(f"Downloading the audio from youtube..., URL: {video_or_audio_url}\n")
          res = await download_audio(video_or_audio_url)
          file_path = res["file_path"]
-         print("Audio downloaded successfully. Saved in:", file_path, "\n")
+         logger.info(f"Audio downloaded successfully. Saved in: {file_path}\n")
       # if ends with mp3, download the audio
       elif video_or_audio_url.endswith(".mp3") or video_or_audio_url.endswith(".wav"):
-         print("Downloading the audio from the URL..., URL:", video_or_audio_url, "\n")
+         logger.info(f"Downloading the audio from the URL... URL: {video_or_audio_url}\n")
          res = await download_audio_file(video_or_audio_url)
          file_path = res["file_path"]
-         print("Audio downloaded successfully. Saved in:", file_path, "\n")
+         logger.info(f"Audio downloaded successfully. Saved in: {file_path}\n")
 
    outputs = separator.separate(file_path)
 
    end_time = time.time()  # Stop the timer
    elapsed_time = end_time - start_time  # Calculate the elapsed time
 
-   print("Audio separated successfully.", outputs, "\n")
-   print("Time taken:", elapsed_time, "seconds", "\n")  # Print the elapsed time
+   logger.info(f"Audio separated successfully. Outputs: {outputs}\n")
+   logger.info(f"Time taken: {elapsed_time} seconds\n")  # Print the elapsed time
    
    response = {
       "vocal_file_path": APPLIO_AUDIO_OUTPUT_PATH + outputs[1],
@@ -208,13 +230,13 @@ async def separate_audio(request_body: dict):
       "original_file_path": file_path,
    }
    
-   print("Audio separation response", response, "\n")
+   logger.info(f"Audio separation response: {response}\n")
 
    return response
    
 @app.post("/merge_audio")
 async def merge_audio(request_body: dict):
-   print("Merging the audio...")
+   logger.info("Merging the audio...")
    vocal_file_path = request_body.get("vocal_file_path")
    instrumental_file_path = request_body.get("instrumental_file_path")
    vocal_audio = AudioSegment.from_wav(vocal_file_path)
@@ -234,7 +256,7 @@ async def merge_audio(request_body: dict):
    merged_audio_path = f'{APPLIO_AUDIO_OUTPUT_PATH}{vocal_file_name}_merged.wav'
    merged_audio.export(merged_audio_path, format="wav")
 
-   print("Audio merged successfully.")
+   logger.info("Audio merged successfully.")
 
    return {
       "merged_audio_path": merged_audio_path
@@ -243,6 +265,7 @@ async def merge_audio(request_body: dict):
 # get index file path and model file path and name for model id 
 @app.get("/get_model_files")
 async def get_model_files(model_id: str):
+   logger.info(f"Getting model files for model id: {model_id}")
    # find file that contains the model_id and ends with .pth in the APPLIO_LOGS_PATH
    model_file_path = None
    model_name = None
@@ -290,8 +313,8 @@ async def cleanup_files(request_body: dict):
          elif os.path.isdir(updated_path):
            shutil.rmtree(updated_path)
       except Exception as e:
-          print("An error occurred while removing the file:", e)
-          continue
+         logger.error(f"An error occurred while removing the file: {e}")
+         continue
    return {
       "message": "Files removed successfully."
    }
@@ -336,9 +359,12 @@ async def upload_model_files(request_body: dict):
       await asyncio.gather(*tasks)
 
    # upload model and index files
-   print("Uploading model and index files...")
+   logger.info("Uploading model and index files...")
    await upload_files_parallel(model_file_path, model_file_name, index_file_path, index_file_name)
 
    return {
       "message": "Model and index files uploaded successfully."
    }
+
+
+FastAPIInstrumentor.instrument_app(app=app)
