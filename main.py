@@ -172,30 +172,35 @@ async def download_dataset(input_url: str):
 # get the audio file path and separate the audio and save into same folder with suffix _separated
 @app.post("/separate_audio")
 async def separate_audio(request_body: dict):
-   print("Separating the audio...")
-   print("Loading the audio separator...")
+   start_time = time.time()  # Start the timer
+   print("Separating the audio...\n")
+   print("Loading the audio separator...\n")
    file_path = request_body.get("file_path")
    video_or_audio_url = request_body.get("video_or_audio_url")
    
    if file_path: 
-      print("Reading the audio file...")
+      print("Reading the audio file...\n")
    elif video_or_audio_url: 
       # detect if file is a youtube URL 
       if "youtube.com" in video_or_audio_url or "youtu.be" in video_or_audio_url:
-         print("Downloading the audio from youtube..., URL:", video_or_audio_url)
+         print("Downloading the audio from youtube..., URL:", video_or_audio_url, "\n")
          res = await download_audio(video_or_audio_url)
          file_path = res["file_path"]
-         print("Audio downloaded successfully. Saved in:", file_path)
+         print("Audio downloaded successfully. Saved in:", file_path, "\n")
       # if ends with mp3, download the audio
       elif video_or_audio_url.endswith(".mp3") or video_or_audio_url.endswith(".wav"):
-         print("Downloading the audio from the URL..., URL:", video_or_audio_url)
+         print("Downloading the audio from the URL..., URL:", video_or_audio_url, "\n")
          res = await download_audio_file(video_or_audio_url)
          file_path = res["file_path"]
-         print("Audio downloaded successfully. Saved in:", file_path)
-         
+         print("Audio downloaded successfully. Saved in:", file_path, "\n")
+
    outputs = separator.separate(file_path)
 
-   print("Audio separated successfully.", outputs)
+   end_time = time.time()  # Stop the timer
+   elapsed_time = end_time - start_time  # Calculate the elapsed time
+
+   print("Audio separated successfully.", outputs, "\n")
+   print("Time taken:", elapsed_time, "seconds", "\n")  # Print the elapsed time
    
    response = {
       "vocal_file_path": APPLIO_AUDIO_OUTPUT_PATH + outputs[1],
@@ -203,7 +208,7 @@ async def separate_audio(request_body: dict):
       "original_file_path": file_path,
    }
    
-   print("Audio separation response", response)
+   print("Audio separation response", response, "\n")
 
    return response
    
