@@ -6,7 +6,7 @@ INDEX_FILES_BUCKET = 'vox-ai-model-index-files'
 PTH_FILES_BUCKET = 'vox-ai-model-pth-files'
 CONTENT_FILES_BUCKET = 'vox-ai'
 
-CONTENT_FILES_BUCKET_URL = 'https://r2.voxapp.ai/'
+CONTENT_FILES_BUCKET_URL = 'https://r2.voxapp.ai'
 
 # define enum for bucket types
 class BucketType:
@@ -39,7 +39,10 @@ def upload_file(file_path, filename, bucketType: BucketType):
             UploadMethod="File"
           )
   if rs['result'] == 'OK':
-    return rs['Path']
+      if bucketType == BucketType.CONTENT_FILES:
+        return f"{CONTENT_FILES_BUCKET_URL}/{filename}"
+      else:
+        return rs['Path']
   else:
     raise Exception(f"Failed to upload file {filename}, Response: {rs}")
   

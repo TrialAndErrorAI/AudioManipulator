@@ -4,6 +4,7 @@ from fastapi import FastAPI
 import json
 import time
 import requests
+import concurrent.futures
 import os
 from urllib.parse import unquote
 import random
@@ -60,9 +61,6 @@ handler = LoggingHandler(level=logging.INFO, logger_provider=logger_provider)
 
 logger = logging.getLogger("AudioManipulator")
 logger.addHandler(handler)
-
-# Default Handler
-logger.addHandler(logging.StreamHandler())
 
 # OpenTelemetry Metrics Setup
 
@@ -232,6 +230,7 @@ async def separate_audio(request_body: dict):
    logger.info("Separating the audio...\n")
    file_path = request_body.get("file_path")
    video_or_audio_url = request_body.get("video_or_audio_url")
+   audio_id = request_body.get("audio_id")
    
    if file_path: 
       logger.info("Reading the audio file...\n")
@@ -257,10 +256,48 @@ async def separate_audio(request_body: dict):
    logger.info(f"Audio separated successfully. Outputs: {outputs}\n")
    logger.info(f"Time taken: {elapsed_time} seconds\n")  # Print the elapsed time
    
+   instrumental_file_path =  APPLIO_AUDIO_OUTPUT_PATH + outputs[0]
+   vocal_file_path =  APPLIO_AUDIO_OUTPUT_PATH + outputs[1]
+   original_file_path = file_path
+   
+   
+   logger.info("Uploading the audio files to R2...\n")
+   
+   # Create a function to upload a file
+   def upload_local_file(file_path, file_name):
+      file_upload_rs = upload_file(file_path, file_name, BucketType.CONTENT_FILES)
+      if file_upload_rs is None:
+         raise Exception(f"Failed to upload {file_name}")
+      return file_upload_rs
+
+   # Create a list of paths and file names
+   upload_paths = [original_file_path, instrumental_file_path, vocal_file_path]
+   file_names = [audio_id, f'{audio_id}_instrumental.mp3', f'{audio_id}_vocal.mp3']
+
+   # Use concurrent.futures to upload files in parallel
+   with concurrent.futures.ThreadPoolExecutor() as executor:
+      # Submit the upload tasks
+      upload_tasks = [executor.submit(upload_local_file, file_path, file_name) for file_path, file_name in zip(upload_paths, file_names)]
+      
+      # Wait for all tasks to complete
+      concurrent.futures.wait(upload_tasks)
+      
+      # Get the results of the upload tasks
+      results = [task.result() for task in upload_tasks]
+      
+      # Check if any upload failed
+      if None in results:
+         raise Exception("Failed to upload audio files")
+      
+      original_file_upload_rs, instrumental_file_upload_rs, vocal_file_upload_rs = results
+   
    response = {
-      "vocal_file_path": APPLIO_AUDIO_OUTPUT_PATH + outputs[1],
-      "instrumental_file_path":  APPLIO_AUDIO_OUTPUT_PATH + outputs[0],
-      "original_file_path": file_path,
+      "vocal_file_path": vocal_file_path,
+      "instrumental_file_path":  instrumental_file_path,
+      "original_file_path": original_file_path,
+      "r2_original_file_url": original_file_upload_rs,
+      "r2_vocal_file_url": vocal_file_upload_rs,
+      "r2_instrumental_file_url": instrumental_file_upload_rs
    }
    
    logger.info(f"Audio separation response: {response}\n")
@@ -272,6 +309,7 @@ async def merge_audio(request_body: dict):
    logger.info("Merging the audio...")
    vocal_file_path = request_body.get("vocal_file_path")
    instrumental_file_path = request_body.get("instrumental_file_path")
+   audio_id = request_body.get("audio_id")
    vocal_audio = AudioSegment.from_wav(vocal_file_path)
    instrumental_audio = AudioSegment.from_wav(instrumental_file_path)
 
@@ -290,9 +328,17 @@ async def merge_audio(request_body: dict):
    merged_audio.export(merged_audio_path, format="wav")
 
    logger.info("Audio merged successfully.")
+   
+   file_upload_rs = upload_file(merged_audio_path, audio_id, BucketType.CONTENT_FILES)
+   
+   if file_upload_rs is None:
+      raise Exception("Failed to upload the merged audio file.")
+   
+   logger.info(f"Merged audio uploaded successfully to R2. URL: {file_upload_rs}")
 
    return {
-      "merged_audio_path": merged_audio_path
+      "merged_audio_path": merged_audio_path,
+      "r2_merged_audio_url": file_upload_rs
    }
 
 # get index file path and model file path and name for model id 
@@ -380,23 +426,39 @@ async def upload_model_files(request_body: dict):
    index_file_path = request_body.get("index_file_path")
    model_file_name = request_body.get("model_file_name")
    index_file_name = request_body.get("index_file_name")
+   
+   # Create a function to upload a file
+   def upload_local_file(file_path, file_name, bucket_type: BucketType):
+      file_upload_rs = upload_file(file_path, file_name, bucket_type)
+      if file_upload_rs is None:
+         raise Exception(f"Failed to upload {file_name}")
+      return file_upload_rs
 
-   async def upload_file_async(file_path: str, file_name: str, bucket_type: BucketType):
-      upload_file(file_path, file_name, bucket_type)
-
-   async def upload_files_parallel(model_file_path: str, model_file_name: str, index_file_path: str, index_file_name: str):
-      tasks = [
-         upload_file_async(APPLIO_ROOT_PATH + model_file_path, model_file_name, BucketType.PTH_FILES),
-         upload_file_async(APPLIO_ROOT_PATH + index_file_path, index_file_name, BucketType.INDEX_FILES)
-      ]
-      await asyncio.gather(*tasks)
-
-   # upload model and index files
+   
    logger.info("Uploading model and index files...")
-   await upload_files_parallel(model_file_path, model_file_name, index_file_path, index_file_name)
+   
+   # Create a list of paths and file names
+   upload_paths = [APPLIO_ROOT_PATH + model_file_path, APPLIO_ROOT_PATH + index_file_path]
+   file_names = [model_file_name, index_file_name]
+   bucket_types = [BucketType.PTH_FILES, BucketType.INDEX_FILES]
+
+   # Use concurrent.futures to upload files in parallel
+   with concurrent.futures.ThreadPoolExecutor() as executor:
+      # Submit the upload tasks
+      upload_tasks = [executor.submit(upload_local_file, file_path, file_name, bucket_type) for file_path, file_name, bucket_type in zip(upload_paths, file_names, bucket_types)]
+      
+      # Wait for all tasks to complete
+      concurrent.futures.wait(upload_tasks)
+      
+      # Get the results of the upload tasks
+      results = [task.result() for task in upload_tasks]
+      
+      # Check if any upload failed
+      if None in results:
+         raise Exception("Failed to upload model files")
 
    return {
-      "message": "Model and index files uploaded successfully."
+      "message": "Model and index files uploaded successfully.",
    }
 
 
