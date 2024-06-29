@@ -255,6 +255,13 @@ async def separate_audio(request_body: dict):
          file_path = res["file_path"]
          logger.info(f"Audio downloaded successfully. Saved in: {file_path}\n")
 
+   if file_path is None:
+      logger.error(f"Audio download unsuccessful, URL: {video_or_audio_url}, audio_id: {audio_id}\n")
+      return {
+         "status": "error",
+         "error": f"Unable to download audio, URL: {video_or_audio_url}, audio_id: {audio_id}"
+      }
+   
    try:
       outputs = separator.separate(file_path)
    except Exception as e:
