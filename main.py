@@ -238,8 +238,15 @@ async def separate_audio(request_body: dict):
       # detect if file is a youtube URL 
       if "youtube.com" in video_or_audio_url or "youtu.be" in video_or_audio_url:
          logger.info(f"Downloading the audio from youtube..., URL: {video_or_audio_url}\n")
-         res = await download_audio(video_or_audio_url)
-         file_path = res["file_path"]
+         try:
+            res = await download_audio(video_or_audio_url)
+            file_path = res["file_path"]
+         except Exception as e:
+            logger.error(f"Error occurred while downloading audio from YouTube, Video URL: {video_or_audio_url}, error: {str(e)}\n")
+            return {
+               "status": "error",
+               "error": f"Error occurred while downloading audio: {str(e)}"
+            }
          logger.info(f"Audio downloaded successfully. Saved in: {file_path}\n")
       # if ends with mp3, download the audio
       elif video_or_audio_url.endswith(".mp3") or video_or_audio_url.endswith(".wav"):
@@ -248,18 +255,20 @@ async def separate_audio(request_body: dict):
          file_path = res["file_path"]
          logger.info(f"Audio downloaded successfully. Saved in: {file_path}\n")
 
-   outputs = separator.separate(file_path)
-
-   end_time = time.time()  # Stop the timer
-   elapsed_time = end_time - start_time  # Calculate the elapsed time
-
+   try:
+      outputs = separator.separate(file_path)
+   except Exception as e:
+      logger.error(f"Error occurred while separating audio: {str(e)}")
+      return {
+         "status": "error",
+         "error": f"Error occurred while separating audio: {str(e)}"
+      }
+   
    logger.info(f"Audio separated successfully. Outputs: {outputs}\n")
-   logger.info(f"Time taken: {elapsed_time} seconds\n")  # Print the elapsed time
    
    instrumental_file_path =  APPLIO_AUDIO_OUTPUT_PATH + outputs[0]
    vocal_file_path =  APPLIO_AUDIO_OUTPUT_PATH + outputs[1]
    original_file_path = file_path
-   
    
    logger.info("Uploading the audio files to R2...\n")
    
@@ -290,6 +299,11 @@ async def separate_audio(request_body: dict):
          raise Exception("Failed to upload audio files")
       
       original_file_upload_rs, instrumental_file_upload_rs, vocal_file_upload_rs = results
+   
+   end_time = time.time()  # Stop the timer
+   elapsed_time = end_time - start_time  # Calculate the elapsed time
+
+   logger.info(f"Time taken: {elapsed_time} seconds\n")  # Print the elapsed time
    
    response = {
       "vocal_file_path": vocal_file_path,
