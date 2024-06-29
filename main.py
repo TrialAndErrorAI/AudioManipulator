@@ -306,6 +306,7 @@ async def separate_audio(request_body: dict):
    logger.info(f"Time taken: {elapsed_time} seconds\n")  # Print the elapsed time
    
    response = {
+      "status": "success",
       "vocal_file_path": vocal_file_path,
       "instrumental_file_path":  instrumental_file_path,
       "original_file_path": original_file_path,
