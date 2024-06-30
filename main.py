@@ -489,6 +489,9 @@ async def upload_model_files(request_body: dict):
 async def upload_files_to_r2(request_body: dict):
    paths = request_body.get("paths_and_file_names")
    bucket_type = request_body.get("bucket_type") or BucketType.CONTENT_FILES
+   
+   logger.info(f"Uploading files to R2, paths: {paths}, bucket_type: {bucket_type}")
+   
    # Create a function to upload a file
    def upload_local_file(file_path, file_name):
       # check if file path already has APPLIO_ROOT_PATH
@@ -518,6 +521,8 @@ async def upload_files_to_r2(request_body: dict):
       
       # make the results as a dictionary
       results = {result["file_path"]: result["r2_url"] for result in results}
+      
+      logger.info(f"Files uploaded successfully to R2, paths: {paths}, bucket_type: {bucket_type}")
       
       # Check if any upload failed
       if None in results:
