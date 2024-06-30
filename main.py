@@ -522,7 +522,7 @@ async def upload_files_to_r2(request_body: dict):
       # make the results as a dictionary
       results = {result["file_path"]: result["r2_url"] for result in results}
       
-      logger.info(f"Files uploaded successfully to R2, paths: {paths}, bucket_type: {bucket_type}")
+      logger.info(f"Files uploaded successfully to R2, results: {results}")
       
       # Check if any upload failed
       if None in results:
