@@ -266,6 +266,7 @@ async def separate_audio(request_body: dict):
       outputs = separator.separate(file_path)
    except Exception as e:
       logger.error(f"Error occurred while separating audio: {str(e)}")
+      cleanup_files({"paths": [file_path]})
       return {
          "status": "error",
          "error": f"Error occurred while separating audio: {str(e)}"
@@ -482,6 +483,49 @@ async def upload_model_files(request_body: dict):
    return {
       "message": "Model and index files uploaded successfully.",
    }
+   
+# create an endpoint that will take a list of file paths and upload them to the R2 server in parallel
+@app.post("/upload_files_to_r2")
+async def upload_files_to_r2(request_body: dict):
+   paths = request_body.get("paths")
+   bucket_type = request_body.get("bucket_type") or BucketType.CONTENT_FILES
+   # Create a function to upload a file
+   def upload_local_file(file_path):
+      # check if file path already has APPLIO_ROOT_PATH
+      if APPLIO_ROOT_PATH not in file_path:
+         file_path = APPLIO_ROOT_PATH + file_path
+      
+      file_upload_rs = upload_file(file_path, os.path.basename(file_path), bucket_type)
+      if file_upload_rs is None:
+         raise Exception(f"Failed to upload {file_path}")
+      return {
+         "file_path": file_path,
+         "r2_url": file_upload_rs
+      }
 
+   # Use concurrent.futures to upload files in parallel
+   with concurrent.futures.ThreadPoolExecutor() as executor:
+      # Submit the upload tasks
+      upload_tasks = [executor.submit(upload_local_file, path) for path in paths]
+      
+      # Wait for all tasks to complete
+      concurrent.futures.wait(upload_tasks)
+      
+      # Get the results of the upload tasks
+      results = [task.result() for task in upload_tasks]
+      
+      # Check if any upload failed
+      if None in results:
+         logger.error("Failed to upload files, paths: {paths}, bucket_type: {bucket_type}")
+         return {
+            "status": "error",
+            "error": "Failed to upload files"
+         }
 
+   return {
+      "status": "success",
+      "files": results
+   }
+      
+   
 FastAPIInstrumentor.instrument_app(app=app, meter_provider=meter_provider, tracer_provider=tracer)
