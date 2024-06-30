@@ -487,17 +487,18 @@ async def upload_model_files(request_body: dict):
 # create an endpoint that will take a list of file paths and upload them to the R2 server in parallel
 @app.post("/upload_files_to_r2")
 async def upload_files_to_r2(request_body: dict):
-   paths = request_body.get("paths")
+   paths = request_body.get("paths_and_file_names")
    bucket_type = request_body.get("bucket_type") or BucketType.CONTENT_FILES
    # Create a function to upload a file
-   def upload_local_file(file_path):
+   def upload_local_file(file_path, file_name):
       # check if file path already has APPLIO_ROOT_PATH
-      if APPLIO_ROOT_PATH not in file_path:
-         file_path = APPLIO_ROOT_PATH + file_path
+      temp_file_path = file_path
+      if APPLIO_ROOT_PATH not in temp_file_path:
+         temp_file_path = APPLIO_ROOT_PATH + file_path
       
-      file_upload_rs = upload_file(file_path, os.path.basename(file_path), bucket_type)
+      file_upload_rs = upload_file(temp_file_path, file_name, bucket_type)
       if file_upload_rs is None:
-         raise Exception(f"Failed to upload {file_path}")
+         raise Exception(f"Failed to upload {temp_file_path}")
       return {
          "file_path": file_path,
          "r2_url": file_upload_rs
@@ -506,13 +507,17 @@ async def upload_files_to_r2(request_body: dict):
    # Use concurrent.futures to upload files in parallel
    with concurrent.futures.ThreadPoolExecutor() as executor:
       # Submit the upload tasks
-      upload_tasks = [executor.submit(upload_local_file, path) for path in paths]
+      # paths is a dictionary with keys as file paths and values as file names
+      upload_tasks = [executor.submit(upload_local_file, file_path, file_name) for file_path, file_name in paths.items()]
       
       # Wait for all tasks to complete
       concurrent.futures.wait(upload_tasks)
       
       # Get the results of the upload tasks
       results = [task.result() for task in upload_tasks]
+      
+      # make the results as a dictionary
+      results = {result["file_path"]: result["r2_url"] for result in results}
       
       # Check if any upload failed
       if None in results:
@@ -524,7 +529,7 @@ async def upload_files_to_r2(request_body: dict):
 
    return {
       "status": "success",
-      "files": results
+      "uploaded_files": results
    }
       
    
