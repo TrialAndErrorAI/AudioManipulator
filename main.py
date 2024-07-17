@@ -235,6 +235,7 @@ async def separate_audio(request_body: dict):
    file_path = request_body.get("file_path")
    video_or_audio_url = request_body.get("video_or_audio_url")
    audio_id = request_body.get("audio_id")
+   purpose = request_body.get("purpose")
    
    if file_path: 
       logger.info("Reading the audio file...\n")
@@ -292,11 +293,28 @@ async def separate_audio(request_body: dict):
       return file_upload_rs
 
    # Create a list of paths and file names
-   upload_paths = [original_file_path, instrumental_file_path, vocal_file_path]
-   file_names = [audio_id, f'{audio_id}_instrumental.mp3', f'{audio_id}_vocal.mp3']
+   upload_paths = []
+   file_names = []
+   if purpose is not None and purpose == "vocal_remover":
+      upload_paths = [original_file_path, instrumental_file_path, vocal_file_path]
+      file_names = [audio_id, f'{audio_id}_instrumental.mp3', f'{audio_id}_vocal.mp3']
+
+   # check if there are any files to upload, if not return the response
+   if len(upload_paths) == 0:
+      response = {
+         "status": "success",
+         "vocal_file_path": vocal_file_path,
+         "instrumental_file_path":  instrumental_file_path,
+         "original_file_path": original_file_path,
+      }
+      
+      logger.info(f"Audio separation response: {response}\n")
+      
+      return response
 
    # Use concurrent.futures to upload files in parallel
    with concurrent.futures.ThreadPoolExecutor() as executor:
+         
       # Submit the upload tasks
       upload_tasks = [executor.submit(upload_local_file, file_path, file_name) for file_path, file_name in zip(upload_paths, file_names)]
       
@@ -326,7 +344,7 @@ async def separate_audio(request_body: dict):
       "r2_vocal_file_url": vocal_file_upload_rs,
       "r2_instrumental_file_url": instrumental_file_upload_rs
    }
-   
+
    logger.info(f"Audio separation response: {response}\n")
 
    return response
