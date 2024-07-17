@@ -351,8 +351,8 @@ async def merge_audio(request_body: dict):
    vocal_file_name = vocal_file_path.split('/')[-1].split('.')[0]
 
    # Save the merged audio
-   merged_audio_path = f'{APPLIO_AUDIO_OUTPUT_PATH}{vocal_file_name}_merged.wav'
-   merged_audio.export(merged_audio_path, format="wav")
+   merged_audio_path = f'{APPLIO_AUDIO_OUTPUT_PATH}{vocal_file_name}_merged.mp3'
+   merged_audio.export(merged_audio_path, format="mp3")
 
    logger.info("Audio merged successfully.")
    
