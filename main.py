@@ -195,7 +195,7 @@ async def download_audio(input_url: str):
       raise Exception("Failed to download audio.")
 
 @app.post("/download_audio_file")
-async def download_audio_file(input_url: str):
+async def download_file(input_url: str):
    # download file from url
    response = requests.get(input_url, stream=True)
    # get file name from url
@@ -256,7 +256,7 @@ async def separate_audio(request_body: dict):
       # if ends with mp3, download the audio
       elif video_or_audio_url.endswith(".mp3") or video_or_audio_url.endswith(".wav"):
          logger.info(f"Downloading the audio from the URL... URL: {video_or_audio_url}\n")
-         res = await download_audio_file(video_or_audio_url)
+         res = await download_file(video_or_audio_url)
          file_path = res["file_path"]
          logger.info(f"Audio downloaded successfully. Saved in: {file_path}\n")
 
@@ -557,6 +557,82 @@ async def upload_files_to_r2(request_body: dict):
    return {
       "status": "success",
       "uploaded_files": results
+   }
+   
+@app.post("/generate_video")
+async def generate_video(request_body: dict): 
+   logger.info("Generating the video...")
+   audio_url = request_body.get("audio_url")
+   audio_data = request_body.get("audio_data")
+   cover_image_url = request_body.get("cover_image_url")
+   audio_id = request_body.get("audio_id")
+   
+   audio_file_path = None
+   
+   # download the audio if audio_url is provided
+   if audio_url:
+      logger.info(f"Downloading the audio from the URL... URL: {audio_url}\n")
+      res = await download_file(audio_url)
+      audio_file_path = res["file_path"]
+      logger.info(f"Audio downloaded successfully. Saved in: {audio_file_path}\n")
+   
+   # check if audio_data base64 is provided and save it to a file
+   if audio_data is not None and audio_data != "":
+      audio_file_path = f"{APPLIO_AUDIO_OUTPUT_PATH}{audio_id}"
+      with open(audio_file_path, "wb") as f:
+         f.write(base64.b64decode(audio_data))
+      logger.info(f"Audio data saved successfully. Saved in: {audio_file_path}\n")
+   
+   # download the cover image if cover_image_url is provided
+   if cover_image_url:
+      logger.info(f"Downloading the cover image from the URL... URL: {cover_image_url}\n")
+      res = await download_file(cover_image_url)
+      cover_image_path = res["file_path"]
+      logger.info(f"Cover image downloaded successfully. Saved in: {cover_image_path}\n")
+   else:
+      # pick default cover image
+      logger.info("Using the default cover image...\n")
+      cover_image_path = f"{APPLIO_ROOT_PATH}default_cover_image.png"
+
+   # create a short random string using current timestamp
+   short_rand_string = str(int(time.time()))
+
+   # create a video from the audio and cover image
+   clean_audio_id = audio_id.replace(".mp3", "")
+   videoKey = f"{clean_audio_id}_{short_rand_string}.mp4"
+   video_path = f'{APPLIO_AUDIO_OUTPUT_PATH}{videoKey}'
+
+   # get the duration of the audio in seconds
+   audio = AudioSegment.from_file(audio_file_path)
+   audio_duration = len(audio) / 1000
+
+   exit_code = os.system(f"ffmpeg -r 1 -loop 1 -y -t {audio_duration} -i {cover_image_path} -i {audio_file_path} -c:v h264_nvenc -shortest -pix_fmt yuv420p ${video_path}")
+
+   if exit_code != 0:
+      cleanup_files({"paths": [audio_file_path, cover_image_path, video_path]})
+      logger.error("Failed to generate the video.")
+      return {
+         "status": "error",
+         "error": "Failed to generate the video."
+      }
+   
+   logger.info(f'Video generated successfully and saved in: {video_path}')
+   
+   file_upload_rs = upload_file(video_path, videoKey, BucketType.CONTENT_FILES)
+   
+   if file_upload_rs is None:
+      raise Exception("Failed to upload the video file.")
+   
+   logger.info(f"Video uploaded successfully to R2. URL: {file_upload_rs}")
+   
+   # cleanup the files
+   cleanup_files({"paths": [audio_file_path, cover_image_path, video_path]})
+
+   return {
+      "status": "success",
+      "r2_video_url": file_upload_rs,
+      "videoKey": videoKey,
+      "audio_id": audio_id
    }
       
    
