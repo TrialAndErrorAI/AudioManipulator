@@ -375,7 +375,7 @@ async def merge_audio(request_body: dict):
 
    logger.info("Audio merged successfully.")
    
-   file_upload_rs = await upload_file(merged_audio_path, audio_id, BucketType.CONTENT_FILES)
+   file_upload_rs = upload_file(merged_audio_path, audio_id, BucketType.CONTENT_FILES)
    
    if file_upload_rs is None:
       raise Exception("Failed to upload the merged audio file.")
