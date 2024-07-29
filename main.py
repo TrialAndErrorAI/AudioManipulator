@@ -374,7 +374,7 @@ async def merge_audio(request_body: dict):
 
    logger.info("Audio merged successfully.")
    
-   file_upload_rs = upload_file(merged_audio_path, audio_id, BucketType.CONTENT_FILES)
+   file_upload_rs = await upload_file(merged_audio_path, audio_id, BucketType.CONTENT_FILES)
    
    if file_upload_rs is None:
       raise Exception("Failed to upload the merged audio file.")
@@ -599,8 +599,8 @@ async def generate_video(request_body: dict):
 
    # create a video from the audio and cover image
    clean_audio_id = audio_id.replace(".mp3", "")
-   videoKey = f"{clean_audio_id}_{short_rand_string}.mp4"
-   video_path = f'{APPLIO_AUDIO_OUTPUT_PATH}{videoKey}'
+   video_key = f"{clean_audio_id}_{short_rand_string}.mp4"
+   video_path = f'{APPLIO_AUDIO_OUTPUT_PATH}{video_key}'
 
    # get the duration of the audio in seconds
    audio = AudioSegment.from_file(audio_file_path)
@@ -618,7 +618,7 @@ async def generate_video(request_body: dict):
    
    logger.info(f'Video generated successfully and saved in: {video_path}')
    
-   file_upload_rs = upload_file(video_path, videoKey, BucketType.CONTENT_FILES)
+   file_upload_rs = await upload_file(video_path, video_key, BucketType.CONTENT_FILES)
    
    if file_upload_rs is None:
       raise Exception("Failed to upload the video file.")
@@ -631,7 +631,7 @@ async def generate_video(request_body: dict):
    return {
       "status": "success",
       "r2_video_url": file_upload_rs,
-      "videoKey": videoKey,
+      "video_key": video_key,
       "audio_id": audio_id
    }
       
