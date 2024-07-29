@@ -606,7 +606,7 @@ async def generate_video(request_body: dict):
    audio = AudioSegment.from_file(audio_file_path)
    audio_duration = len(audio) / 1000
 
-   exit_code = os.system(f"ffmpeg -r 1 -loop 1 -y -t {audio_duration} -i {cover_image_path} -i {audio_file_path} -c:v h264_nvenc -shortest -pix_fmt yuv420p ${video_path}")
+   exit_code = os.system(f"ffmpeg -r 1 -loop 1 -y -t {audio_duration} -i {cover_image_path} -i {audio_file_path} -c:v h264_nvenc -shortest -pix_fmt yuv420p {video_path}")
 
    if exit_code != 0:
       cleanup_files({"paths": [audio_file_path, cover_image_path, video_path]})
