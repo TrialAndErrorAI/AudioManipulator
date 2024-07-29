@@ -271,7 +271,7 @@ async def separate_audio(request_body: dict):
       outputs = separator.separate(file_path)
    except Exception as e:
       logger.error(f"Error occurred while separating audio: {str(e)}")
-      cleanup_files({"paths": [file_path]})
+      await cleanup_files({"paths": [file_path]})
       return {
          "status": "error",
          "error": f"Error occurred while separating audio: {str(e)}"
@@ -609,7 +609,7 @@ async def generate_video(request_body: dict):
    exit_code = os.system(f"ffmpeg -r 1 -loop 1 -y -t {audio_duration} -i {cover_image_path} -i {audio_file_path} -c:v h264_nvenc -shortest -pix_fmt yuv420p {video_path}")
 
    if exit_code != 0:
-      cleanup_files({"paths": [audio_file_path, cover_image_path, video_path]})
+      await cleanup_files({"paths": [audio_file_path, cover_image_path, video_path]})
       logger.error("Failed to generate the video.")
       return {
          "status": "error",
@@ -626,7 +626,7 @@ async def generate_video(request_body: dict):
    logger.info(f"Video uploaded successfully to R2. URL: {file_upload_rs}")
    
    # cleanup the files
-   cleanup_files({"paths": [audio_file_path, cover_image_path, video_path]})
+   await cleanup_files({"paths": [audio_file_path, cover_image_path, video_path]})
 
    return {
       "status": "success",
