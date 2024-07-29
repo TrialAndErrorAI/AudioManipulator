@@ -2,6 +2,7 @@ from typing import Union
 import logging
 from fastapi import FastAPI
 import json
+import base64
 import time
 import requests
 import concurrent.futures
