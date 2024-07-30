@@ -284,8 +284,6 @@ async def separate_audio(request_body: dict):
    vocal_file_path =  APPLIO_AUDIO_OUTPUT_PATH + outputs[1]
    original_file_path = file_path
    
-   logger.info("Uploading the audio files to R2...\n")
-   
    # Create a function to upload a file
    def upload_local_file(file_path, file_name):
       file_upload_rs = upload_file(file_path, file_name, BucketType.CONTENT_FILES)
@@ -302,6 +300,9 @@ async def separate_audio(request_body: dict):
 
    # check if there are any files to upload, if not return the response
    if len(upload_paths) == 0:
+      
+      logger.info(f"No files to upload. Purpose: {purpose}\n")
+      
       response = {
          "status": "success",
          "vocal_file_path": vocal_file_path,
@@ -330,6 +331,8 @@ async def separate_audio(request_body: dict):
          raise Exception("Failed to upload audio files")
       
       original_file_upload_rs, instrumental_file_upload_rs, vocal_file_upload_rs = results
+   
+   logger.info("Uploading the audio files to R2...\n")
    
    end_time = time.time()  # Stop the timer
    elapsed_time = end_time - start_time  # Calculate the elapsed time
