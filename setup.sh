@@ -63,6 +63,7 @@ finish() {
 # Function to install open telemetry bootstrap
 install_open_telemetry() {
     echo "Installing Open Telemetry Bootstrap..."
+    pip install opentelemetry-bootstrap
     opentelemetry-bootstrap --action=install
     echo "Open Telemetry Bootstrap installed."
 }
