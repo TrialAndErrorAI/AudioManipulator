@@ -34,7 +34,9 @@ from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
-# APPLIO_ROOT_PATH="/Users/rajan.balana/Developer/dream/Applio/"
+#APPLIO_ROOT_PATH="/Users/rajan.balana/Developer/dream/Applio/"
+#AUDIO_MANIPULATOR_ROOT_PATH="/Users/rajan.balana/Developer/dream/AudioManipulator/"
+AUDIO_MANIPULATOR_ROOT_PATH="/workspace/AudioManipulator/"
 APPLIO_ROOT_PATH="/workspace/Applio/"
 APPLIO_ASSETS_DIR="assets/"
 APPLIO_AUDIO_DIR="audios/"
@@ -44,6 +46,7 @@ APPLIO_LOGS_PATH= APPLIO_ROOT_PATH + APPLIO_LOGS_DIR
 APPLIO_ASSETS_PATH= APPLIO_ROOT_PATH + APPLIO_ASSETS_DIR
 APPLIO_AUDIO_OUTPUT_PATH= APPLIO_ASSETS_PATH + APPLIO_AUDIO_DIR
 APPLIO_DATASET_OUTPUT_PATH= APPLIO_ASSETS_PATH + APPLIO_DATASETS_DIR
+AUDIO_MANIPULATOR_VIDEO_GENERATION_PATH = AUDIO_MANIPULATOR_ROOT_PATH + "video_generation/"
 SERVICE_NAME= "AudioManipulator"
 
 # OpenTelemetry Common Setup
@@ -582,7 +585,7 @@ async def generate_video(request_body: dict):
    
    # check if audio_data base64 is provided and save it to a file
    if audio_data is not None and audio_data != "":
-      audio_file_path = f"{APPLIO_AUDIO_OUTPUT_PATH}{audio_id}"
+      audio_file_path = f"{AUDIO_MANIPULATOR_VIDEO_GENERATION_PATH}{audio_id}"
       with open(audio_file_path, "wb") as f:
          f.write(base64.b64decode(audio_data))
       logger.info(f"Audio data saved successfully. Saved in: {audio_file_path}\n")
@@ -596,7 +599,8 @@ async def generate_video(request_body: dict):
    else:
       # pick default cover image
       logger.info("Using the default cover image...\n")
-      cover_image_path = f"{APPLIO_ROOT_PATH}default_cover_image.png"
+      cover_image_path = f"{AUDIO_MANIPULATOR_VIDEO_GENERATION_PATH}default_cover_image.png"
+      blur_cover_path = f"{AUDIO_MANIPULATOR_VIDEO_GENERATION_PATH}default_blur_albumcover.jpg"
 
    # create a short random string using current timestamp
    short_rand_string = str(int(time.time()))
@@ -604,16 +608,28 @@ async def generate_video(request_body: dict):
    # create a video from the audio and cover image
    clean_audio_id = audio_id.replace(".mp3", "")
    video_key = f"{clean_audio_id}_{short_rand_string}.mp4"
-   video_path = f'{APPLIO_AUDIO_OUTPUT_PATH}{video_key}'
+   video_path = f'{AUDIO_MANIPULATOR_VIDEO_GENERATION_PATH}{video_key}'
 
    # get the duration of the audio in seconds
    audio = AudioSegment.from_file(audio_file_path)
    audio_duration = len(audio) / 1000
+   
+   audio_duration = int(audio_duration)
+   
+   if cover_image_url:
+      # generate the blur background image
+      blur_cover_path = f"{AUDIO_MANIPULATOR_VIDEO_GENERATION_PATH}blur_albumcover.jpg"
+      image_exit_code = os.system(f"magick {cover_image_path} -scale 10% -blur 0x6 -scale 100% {blur_cover_path}")
 
-   exit_code = os.system(f"ffmpeg -r 1 -loop 1 -y -t {audio_duration} -i {cover_image_path} -i {audio_file_path} -c:v h264_nvenc -shortest -pix_fmt yuv420p {video_path}")
+      if image_exit_code != 0:
+         blur_cover_path = f"{AUDIO_MANIPULATOR_VIDEO_GENERATION_PATH}default_blur_albumcover.jpg"
 
-   if exit_code != 0:
-      await cleanup_files({"paths": [audio_file_path, cover_image_path, video_path]})
+   # execute the python script to generate the video
+   command = f"python3 {AUDIO_MANIPULATOR_VIDEO_GENERATION_PATH}generate_video.py --audio {audio_file_path} --cover_image {cover_image_path} --duration {audio_duration} --output {video_path} --background {blur_cover_path}"
+   video_exit_code = os.system(command)
+
+   if video_exit_code != 0:
+      await cleanup_files({"paths": [audio_file_path, cover_image_path, video_path, blur_cover_path]})
       logger.error("Failed to generate the video.")
       return {
          "status": "error",
