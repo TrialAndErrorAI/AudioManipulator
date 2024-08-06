@@ -33,6 +33,7 @@ def main():
     BACKGROUND_IMAGE = args.background
     APP_DOWNLOAD_IMAGE = os.path.join(script_dir, "app_download.png")
     VOX_LOGO_IMAGE = os.path.join(script_dir, "voxLogoRounded.png")
+    TEXT_FONT_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 
     # Calculate the ratio based on the output size
     OUTPUT_WIDTH, OUTPUT_HEIGHT = map(int, OUTPUT_SIZE.split('x'))
@@ -71,7 +72,6 @@ def main():
     PROGRESS_BAR_BG_COLOR = "0x333333"
     PROGRESS_BAR_FG_COLOR = "0x00FF00"
 
-    DURATION_TEXT_FONT = "Arial"
     DURATION_TEXT_COLOR = "white"
     DURATION_TEXT_FONT_SIZE = int(OUTPUT_HEIGHT * 0.020)
     ELAPSED_TEXT_POSITION_Y = PROGRESS_BAR_POSITION_Y + PROGRESS_BAR_HEIGHT + 10
@@ -81,9 +81,9 @@ def main():
 
     OUTPUT_FILE = args.output
 
-    # FFmpeg command
     ffmpeg_command = [
         "ffmpeg",
+        "-hwaccel", "cuda",  # Enable CUDA hardware acceleration
         "-loop", "1", "-i", BACKGROUND_IMAGE,
         "-loop", "1", "-i", VINYL_IMAGE,
         "-loop", "1", "-i", ALBUM_COVER,
@@ -92,7 +92,7 @@ def main():
         "-i", AUDIO_PATH,
         "-filter_complex",
         f"""
-        [0]scale={OUTPUT_WIDTH}:{OUTPUT_HEIGHT},setsar=1[bg];
+        [0]scale={OUTPUT_WIDTH}:{OUTPUT_HEIGHT}:force_original_aspect_ratio=decrease,pad={OUTPUT_WIDTH}:{OUTPUT_HEIGHT}:(ow-iw)/2:(oh-ih)/2,setsar=1[bg];
         [1]scale={VINYL_SIZE}:{VINYL_SIZE},rotate=angle='t*{ROTATION_SPEED}':fillcolor=none[rotating];
         [bg][rotating]overlay=x={VINYL_POSITION_X}:y={VINYL_POSITION_Y}[bg_with_rotating];
         [2]scale={ALBUM_COVER_SIZE}:-1[ovrl];
@@ -105,18 +105,31 @@ def main():
         trim=duration={DURATION}[fg_bar];
         [bg_bar][fg_bar]overlay=0:0[progress_bar];
         [with_cover][progress_bar]overlay={PROGRESS_BAR_POSITION_X}:{PROGRESS_BAR_POSITION_Y}[with_progress];
-        [with_progress]drawtext=fontsize={DURATION_TEXT_FONT_SIZE}:fontcolor={DURATION_TEXT_COLOR}:x={PROGRESS_BAR_POSITION_X}:y={ELAPSED_TEXT_POSITION_Y}:text='%{{eif\\:trunc(mod(t\\,3600)/60)\\:d\\:2}}\\:%{{eif\\:trunc(mod(t+1\\,60))\\:d\\:2}}':boxborderw=5,
-        drawtext=fontsize={DURATION_TEXT_FONT_SIZE}:fontcolor={DURATION_TEXT_COLOR}:x={REMAINING_TEXT_POSITION_X}:y={ELAPSED_TEXT_POSITION_Y}:text='-\\%{{eif\\:trunc(({DURATION}-t)/60)\\:d\\:2}}\\:\\%{{eif\\:trunc(mod({DURATION}-t\\,60))\\:d\\:2}}':boxborderw=5,
+        [with_progress]drawtext=fontfile=${TEXT_FONT_PATH}:fontsize={DURATION_TEXT_FONT_SIZE}:fontcolor={DURATION_TEXT_COLOR}:x={PROGRESS_BAR_POSITION_X}:y={ELAPSED_TEXT_POSITION_Y}:text='%{{eif\\:trunc(mod(t\\,3600)/60)\\:d\\:2}}\\:%{{eif\\:trunc(mod(t+1\\,60))\\:d\\:2}}':box=1:boxcolor=black@0.5:boxborderw=5,
+        drawtext=fontfile=${TEXT_FONT_PATH}:fontsize={DURATION_TEXT_FONT_SIZE}:fontcolor={DURATION_TEXT_COLOR}:x={REMAINING_TEXT_POSITION_X}:y={ELAPSED_TEXT_POSITION_Y}:text='-\\%{{eif\\:trunc(({DURATION}-t)/60)\\:d\\:2}}\\:\\%{{eif\\:trunc(mod({DURATION}-t\\,60))\\:d\\:2}}':box=1:boxcolor=black@0.5:boxborderw=5,
         setpts='if(gte(T,{DURATION}-0.01),PTS+0.01/TB,PTS)',
         pad=width={OUTPUT_WIDTH}:height={PADDED_HEIGHT}:x=0:y=(oh-ih)/2:color=black[padded];
         [padded][app_download]overlay=(main_w-overlay_w)/2:{TOP_PADDING}[with_app_download];
         [with_app_download][vox_logo]overlay={VOX_LOGO_IMAGE_POSITION_X}:{VOX_LOGO_IMAGE_POSITION_Y}[with_vox_logo];
-        [with_vox_logo]drawtext=fontsize={MADE_WITH_TEXT_FONT_SIZE}:fontcolor={MADE_WITH_TEXT_COLOR}:x={MADE_WITH_TEXT_POSITION_X}:y={MADE_WITH_TEXT_POSITION_Y}:text='Made with VOX AI':boxborderw=5
+        [with_vox_logo]drawtext=fontfile=${TEXT_FONT_PATH}:fontsize={MADE_WITH_TEXT_FONT_SIZE}:fontcolor={MADE_WITH_TEXT_COLOR}:x={MADE_WITH_TEXT_POSITION_X}:y={MADE_WITH_TEXT_POSITION_Y}:text='Made with VOX AI':box=1:boxcolor=black@0.5:boxborderw=5
         [output]
         """,
-        "-map", "[output]", "-map", "5:a", "-t", str(DURATION), "-c:v", "h264_nvenc", "-shortest", "-pix_fmt", "yuv420p", OUTPUT_FILE
+        "-map", "[output]", "-map", "5:a",
+        "-t", str(DURATION),
+        "-c:v", "h264_nvenc",
+        "-preset", "p7",  # Fastest preset for h264_nvenc
+        "-tune", "hq",
+        "-rc", "vbr",
+        "-cq", "23",
+        "-b:v", "5M",
+        "-maxrate", "10M",
+        "-bufsize", "15M",
+        "-c:a", "aac",
+        "-b:a", "192k",
+        "-shortest",
+        "-y",
+        OUTPUT_FILE
     ]
-    
     # Run the FFmpeg command synchronously
     return subprocess.run(ffmpeg_command, check=True)
     
