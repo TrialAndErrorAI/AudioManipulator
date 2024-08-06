@@ -619,7 +619,7 @@ async def generate_video(request_body: dict):
    if cover_image_url:
       # generate the blur background image
       blur_cover_path = f"{AUDIO_MANIPULATOR_VIDEO_GENERATION_PATH}blur_albumcover.jpg"
-      image_exit_code = os.system(f"magick {cover_image_path} -scale 10% -blur 0x6 -scale 100% {blur_cover_path}")
+      image_exit_code = os.system(f"convert {cover_image_path} -scale 10% -blur 0x6 -scale 100% {blur_cover_path}")
 
       if image_exit_code != 0:
          blur_cover_path = f"{AUDIO_MANIPULATOR_VIDEO_GENERATION_PATH}default_blur_albumcover.jpg"
