@@ -113,7 +113,7 @@ def main():
         [with_vox_logo]drawtext=fontsize={MADE_WITH_TEXT_FONT_SIZE}:fontcolor={MADE_WITH_TEXT_COLOR}:x={MADE_WITH_TEXT_POSITION_X}:y={MADE_WITH_TEXT_POSITION_Y}:text='Made with VOX AI':boxborderw=5
         [output]
         """,
-        "-map", "[output]", "-map", "5:a", "-t", str(DURATION), "-c:v", "h264_nvenc", "-preset", "p1", "-rc", "vbr","-cq", "23", "-shortest", "-pix_fmt", "yuv420p", OUTPUT_FILE
+        "-map", "[output]", "-map", "5:a", "-t", str(DURATION), "-c:v", "h264_nvenc","-c:a", "ac3", "-preset", "p1", "-qmax", "24", "-rc", "vbr","-cq", "23", "-shortest", "-pix_fmt", "yuv420p", OUTPUT_FILE
     ]
     # Run the FFmpeg command synchronously
     return subprocess.run(ffmpeg_command, check=True)
