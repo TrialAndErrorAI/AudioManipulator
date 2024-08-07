@@ -575,6 +575,7 @@ async def generate_video(request_body: dict):
    audio_id = request_body.get("audio_id")
    
    audio_file_path = None
+   use_default_cover_image = False
    
    # download the audio if audio_url is provided
    if audio_url:
@@ -599,9 +600,12 @@ async def generate_video(request_body: dict):
    else:
       # pick default cover image
       logger.info("Using the default cover image...\n")
-      cover_image_path = f"{AUDIO_MANIPULATOR_VIDEO_GENERATION_PATH}default_cover_image.png"
-      blur_cover_path = f"{AUDIO_MANIPULATOR_VIDEO_GENERATION_PATH}default_blur_albumcover.jpg"
-
+      use_default_cover_image = True
+      
+   # default cover image path and blur cover image path
+   default_cover_image_path = f"{AUDIO_MANIPULATOR_VIDEO_GENERATION_PATH}default_cover_image.png"
+   default_blur_cover_path = f"{AUDIO_MANIPULATOR_VIDEO_GENERATION_PATH}default_blur_albumcover.jpg"
+      
    # create a short random string using current timestamp
    short_rand_string = str(int(time.time()))
 
@@ -618,14 +622,19 @@ async def generate_video(request_body: dict):
    
    if cover_image_url:
       # generate the blur background image
-      blur_cover_path = f"{AUDIO_MANIPULATOR_VIDEO_GENERATION_PATH}blur_albumcover.jpg"
+      blur_cover_path = f"{APPLIO_AUDIO_OUTPUT_PATH}blur_albumcover.jpg"
       image_exit_code = os.system(f"convert {cover_image_path} -scale 10% -blur 0x6 -scale 100% {blur_cover_path}")
 
       if image_exit_code != 0:
-         blur_cover_path = f"{AUDIO_MANIPULATOR_VIDEO_GENERATION_PATH}default_blur_albumcover.jpg"
-
+         use_default_cover_image = True
+   else:
+      use_default_cover_image = True
+   
+   use_cover_image_path = use_default_cover_image and default_cover_image_path or cover_image_path
+   use_blur_cover_path = use_default_cover_image and default_blur_cover_path or blur_cover_path
+      
    # execute the python script to generate the video
-   command = f"python3 {AUDIO_MANIPULATOR_VIDEO_GENERATION_PATH}generate_video.py --audio {audio_file_path} --cover_image {cover_image_path} --duration {audio_duration} --output {video_path} --background {blur_cover_path}"
+   command = f"python3 {AUDIO_MANIPULATOR_VIDEO_GENERATION_PATH}generate_video.py --audio {audio_file_path} --cover_image {use_cover_image_path} --duration {audio_duration} --output {video_path} --background {use_blur_cover_path}"
    video_exit_code = os.system(command)
 
    if video_exit_code != 0:
@@ -646,7 +655,7 @@ async def generate_video(request_body: dict):
    logger.info(f"Video uploaded successfully to R2. URL: {file_upload_rs}")
    
    # cleanup the files
-   await cleanup_files({"paths": [audio_file_path, cover_image_path, video_path]})
+   await cleanup_files({"paths": [audio_file_path, cover_image_path, video_path, blur_cover_path]})
 
    return {
       "status": "success",
