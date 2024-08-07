@@ -585,7 +585,7 @@ async def generate_video(request_body: dict):
    
    # check if audio_data base64 is provided and save it to a file
    if audio_data is not None and audio_data != "":
-      audio_file_path = f"{AUDIO_MANIPULATOR_VIDEO_GENERATION_PATH}{audio_id}"
+      audio_file_path = f"{APPLIO_AUDIO_OUTPUT_PATH}{audio_id}"
       with open(audio_file_path, "wb") as f:
          f.write(base64.b64decode(audio_data))
       logger.info(f"Audio data saved successfully. Saved in: {audio_file_path}\n")
@@ -608,7 +608,7 @@ async def generate_video(request_body: dict):
    # create a video from the audio and cover image
    clean_audio_id = audio_id.replace(".mp3", "")
    video_key = f"{clean_audio_id}_{short_rand_string}.mp4"
-   video_path = f'{AUDIO_MANIPULATOR_VIDEO_GENERATION_PATH}{video_key}'
+   video_path = f'{APPLIO_AUDIO_OUTPUT_PATH}{video_key}'
 
    # get the duration of the audio in seconds
    audio = AudioSegment.from_file(audio_file_path)
