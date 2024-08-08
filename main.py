@@ -7,7 +7,6 @@ import time
 import requests
 import concurrent.futures
 import os
-from yt_dlp import YoutubeDL
 from urllib.parse import unquote
 import random
 from audio_separator.separator import Separator
@@ -203,21 +202,11 @@ async def download_audio(input_url: str):
 async def download_video(video_url: str): 
    short_rand_string = str(int(time.time()))
    path = APPLIO_AUDIO_OUTPUT_PATH + 'audio_' + short_rand_string
-   ydl_opts = {
-      'verbose': True,
-      'format': 'bestaudio/best',
-      'postprocessors': [{
-         'key': 'FFmpegExtractAudio',
-         'preferredcodec': 'mp3',
-         'preferredquality': '192',
-      }],
-      'outtmpl': path,
-   }
-   with YoutubeDL(ydl_opts) as ydl:
-      error_code = ydl.download([video_url])
+   
+   exit_code = os.system(f"yt-dlp -vU {video_url} --extract-audio --audio-format mp3 --audio-quality 192k --output {path}")
       
-   if error_code != 0:
-      logger.error(f"Failed to download audio from YouTube, error code: {error_code}")
+   if exit_code != 0:
+      logger.error(f"Failed to download audio from YouTube, error code: {exit_code}")
       raise Exception("Failed to download audio from YouTube.")
    
    logger.info(f"Audio downloaded successfully from YouTube using yt-dl. Saved in: {path}")
