@@ -568,6 +568,7 @@ async def upload_files_to_r2(request_body: dict):
    
 @app.post("/generate_video")
 async def generate_video(request_body: dict): 
+   start_time = time.time()  # Start the timer
    logger.info("Generating the video...")
    audio_url = request_body.get("audio_url")
    audio_data = request_body.get("audio_data")
@@ -656,6 +657,11 @@ async def generate_video(request_body: dict):
    
    # cleanup the files
    await cleanup_files({"paths": [audio_file_path, cover_image_path, video_path, blur_cover_path]})
+   
+   end_time = time.time()  # Stop the timer
+   elapsed_time = end_time - start_time  # Calculate the elapsed time
+
+   logger.info(f"Time taken for video creation: {elapsed_time} seconds\n")  # Print the elapsed time
 
    return {
       "status": "success",
