@@ -29,6 +29,8 @@ def main():
     TOTAL_FRAMES = DURATION * FPS
     OUTPUT_SIZE = args.output_size
     VINYL_IMAGE = os.path.join(script_dir, "vinylDisc.png")
+    VINYL_ROTATION_DIR = os.path.join(script_dir, "vinyl_rotation")
+    VINYL_IMAGE_SEQUENCE = os.path.join(VINYL_ROTATION_DIR, "vinyl_rotation_%03d.png")
     ALBUM_COVER = args.cover_image
     BACKGROUND_IMAGE = args.background
     APP_DOWNLOAD_IMAGE = os.path.join(script_dir, "app_download.png")
@@ -84,7 +86,7 @@ def main():
     ffmpeg_command = [
         "ffmpeg",
         "-loop", "1", "-i", BACKGROUND_IMAGE,
-        "-loop", "1", "-i", VINYL_IMAGE,
+        "-framerate", "30", "-i", VINYL_IMAGE_SEQUENCE,
         "-loop", "1", "-i", ALBUM_COVER,
         "-loop", "1", "-i", APP_DOWNLOAD_IMAGE,
         "-loop", "1", "-i", VOX_LOGO_IMAGE,
@@ -92,7 +94,7 @@ def main():
         "-filter_complex",
         f"""
         [0]scale={OUTPUT_WIDTH}:{OUTPUT_HEIGHT},setsar=1[bg];
-        [1]scale={VINYL_SIZE}:{VINYL_SIZE},rotate=angle='t*{ROTATION_SPEED}':fillcolor=none[rotating];
+        [1]scale={VINYL_SIZE}:{VINYL_SIZE},loop=-1:$((30*DURATION))[rotating];
         [bg][rotating]overlay=x={VINYL_POSITION_X}:y={VINYL_POSITION_Y}[bg_with_rotating];
         [2]scale={ALBUM_COVER_SIZE}:-1[ovrl];
         [bg_with_rotating][ovrl]overlay=x={ALBUM_POSITION_X}:y={ALBUM_POSITION_Y}[with_cover];

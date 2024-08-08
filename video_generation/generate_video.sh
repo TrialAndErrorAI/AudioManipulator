@@ -4,17 +4,18 @@
 magick albumcover.jpg -scale 10% -blur 0x6 -scale 100% blur_albumcover.jpg
 
 # Configurable variables
-AUDIO_PATH="audio_4181.wav"
-DURATION=10
+AUDIO_PATH="audio.wav"
+DURATION=167
 FPS=30
 TOTAL_FRAMES=$(echo "$DURATION * $FPS" | bc)
 BACKGROUND_COLOR="0x003655"
 OUTPUT_SIZE="1024x1024"
 VINYL_IMAGE="vinylDisc.png"
-ALBUM_COVER="albumcover.jpg"
-BACKGROUND_IMAGE="blur_albumcover.jpg"
+ALBUM_COVER="default_cover_image.png"
+BACKGROUND_IMAGE="default_blur_albumcover.jpg"
 APP_DOWNLOAD_IMAGE="app_download.png"
 VOX_LOGO_IMAGE="voxLogoRounded.png"
+VINYL_IMAGE_SEQUENCE="vinyl_rotation/vinyl_rotation_%03d.png"
 
 # Calculate the ratio based on the output size
 OUTPUT_WIDTH=$(echo $OUTPUT_SIZE | cut -d 'x' -f 1)
@@ -64,33 +65,34 @@ ROTATION_SPEED=1
 
 OUTPUT_FILE="output.mp4"
 
-# FFmpeg command
-ffmpeg -loop 1 -i ${BACKGROUND_IMAGE} \
-  -loop 1 -i ${VINYL_IMAGE} \
-  -loop 1 -i ${ALBUM_COVER} \
-  -loop 1 -i ${APP_DOWNLOAD_IMAGE} \
-  -loop 1 -i ${VOX_LOGO_IMAGE} \
-  -i "${AUDIO_PATH}" \
+ffmpeg \
+  -loop 1 -i "$BACKGROUND_IMAGE" \
+  -framerate 30 -i "$VINYL_IMAGE_SEQUENCE" \
+  -loop 1 -i "$ALBUM_COVER" \
+  -loop 1 -i "$APP_DOWNLOAD_IMAGE" \
+  -loop 1 -i "$VOX_LOGO_IMAGE" \
+  -i "$AUDIO_PATH" \
   -filter_complex "
-    [0]scale=${OUTPUT_WIDTH}:${OUTPUT_HEIGHT},setsar=1[bg];
-    [1]scale=${VINYL_SIZE}:${VINYL_SIZE},rotate=angle='t*${ROTATION_SPEED}':fillcolor=none[rotating];
-    [bg][rotating]overlay=x=${VINYL_POSITION_X}:y=${VINYL_POSITION_Y}[bg_with_rotating];
-    [2]scale=${ALBUM_COVER_SIZE}:-1[ovrl];
-    [bg_with_rotating][ovrl]overlay=x=${ALBUM_POSITION_X}:y=${ALBUM_POSITION_Y}[with_cover];
-    [3]scale=-1:${APP_DOWNLOAD_HEIGHT}[app_download];
-    [4]scale=-1:${VOX_LOGO_IMAGE_HEIGHT}[vox_logo];
-    color=${PROGRESS_BAR_BG_COLOR}:s=${PROGRESS_BAR_SIZE}:r=30,trim=duration=${DURATION}[bg_bar];
-    color=${PROGRESS_BAR_FG_COLOR}:s=${PROGRESS_BAR_SIZE}:r=30,
-    geq='r=if(lte(X,min((T/(${DURATION}-0.1))*W,W)),255,0):g=if(lte(X,min((T/(${DURATION}-0.1))*W,W)),255,0):b=if(lte(X,min((T/(${DURATION}-0.1))*W,W)),255,0):a=255',
-    trim=duration=${DURATION}[fg_bar];
+    [0]scale=$OUTPUT_WIDTH:$OUTPUT_HEIGHT,setsar=1[bg];
+    [1]scale=$VINYL_SIZE:$VINYL_SIZE,loop=-1:$((30*DURATION))[rotating];
+    [bg][rotating]overlay=x=$VINYL_POSITION_X:y=$VINYL_POSITION_Y[bg_with_rotating];
+    [2]scale=$ALBUM_COVER_SIZE:-1[ovrl];
+    [bg_with_rotating][ovrl]overlay=x=$ALBUM_POSITION_X:y=$ALBUM_POSITION_Y[with_cover];
+    [3]scale=-1:$APP_DOWNLOAD_HEIGHT[app_download];
+    [4]scale=-1:$VOX_LOGO_IMAGE_HEIGHT[vox_logo];
+    color=$PROGRESS_BAR_BG_COLOR:s=$PROGRESS_BAR_SIZE:r=30,trim=duration=$DURATION[bg_bar];
+    color=$PROGRESS_BAR_FG_COLOR:s=$PROGRESS_BAR_SIZE:r=30,
+    geq='r=if(lte(X,min((T/($DURATION-0.1))*W,W)),255,0):g=if(lte(X,min((T/($DURATION-0.1))*W,W)),255,0):b=if(lte(X,min((T/($DURATION-0.1))*W,W)),255,0):a=255',
+    trim=duration=$DURATION[fg_bar];
     [bg_bar][fg_bar]overlay=0:0[progress_bar];
-    [with_cover][progress_bar]overlay=${PROGRESS_BAR_POSITION_X}:${PROGRESS_BAR_POSITION_Y}[with_progress];
-    [with_progress]drawtext=fontsize=${DURATION_TEXT_FONT_SIZE}:fontcolor=${DURATION_TEXT_COLOR}:x=${PROGRESS_BAR_POSITION_X}:y=${ELAPSED_TEXT_POSITION_Y}:text='%{eif\:trunc(mod(t\,3600)/60)\:d\:2}\:%{eif\:trunc(mod(t+1\,60))\:d\:2}':boxborderw=5,
-    drawtext=fontsize=${DURATION_TEXT_FONT_SIZE}:fontcolor=${DURATION_TEXT_COLOR}:x=${REMAINING_TEXT_POSITION_X}:y=${ELAPSED_TEXT_POSITION_Y}:text='-\%{eif\:trunc((${DURATION}-t)/60)\:d\:2}\:\%{eif\:trunc(mod(${DURATION}-t\,60))\:d\:2}':boxborderw=5,
-    setpts='if(gte(T,${DURATION}-0.01),PTS+0.01/TB,PTS)',
-    pad=width=${OUTPUT_WIDTH}:height=${PADDED_HEIGHT}:x=0:y=(oh-ih)/2:color=black[padded];
-    [padded][app_download]overlay=(main_w-overlay_w)/2:${TOP_PADDING}[with_app_download];
-    [with_app_download][vox_logo]overlay=${VOX_LOGO_IMAGE_POSITION_X}:${VOX_LOGO_IMAGE_POSITION_Y}[with_vox_logo];
-    [with_vox_logo]drawtext=fontsize=${MADE_WITH_TEXT_FONT_SIZE}:fontcolor=${MADE_WITH_TEXT_COLOR}:x=${MADE_WITH_TEXT_POSITION_X}:y=${MADE_WITH_TEXT_POSITION_Y}:text='Made with VOX AI':boxborderw=5
-  [output]" \
-  -map "[output]" -map 5:a -t ${DURATION} -c:v libx264 -shortest -pix_fmt yuv420p ${OUTPUT_FILE}
+    [with_cover][progress_bar]overlay=$PROGRESS_BAR_POSITION_X:$PROGRESS_BAR_POSITION_Y[with_progress];
+    [with_progress]drawtext=fontsize=$DURATION_TEXT_FONT_SIZE:fontcolor=$DURATION_TEXT_COLOR:x=$PROGRESS_BAR_POSITION_X:y=$ELAPSED_TEXT_POSITION_Y:text='%{eif\:trunc(mod(t\,3600)/60)\:d\:2}\:%{eif\:trunc(mod(t+1\,60))\:d\:2}':boxborderw=5,
+    drawtext=fontsize=$DURATION_TEXT_FONT_SIZE:fontcolor=$DURATION_TEXT_COLOR:x=$REMAINING_TEXT_POSITION_X:y=$ELAPSED_TEXT_POSITION_Y:text='-\%{eif\:trunc(($DURATION-t)/60)\:d\:2}\:\%{eif\:trunc(mod($DURATION-t\,60))\:d\:2}':boxborderw=5,
+    setpts='if(gte(T,$DURATION-0.01),PTS+0.01/TB,PTS)',
+    pad=width=$OUTPUT_WIDTH:height=$PADDED_HEIGHT:x=0:y=(oh-ih)/2:color=black[padded];
+    [padded][app_download]overlay=(main_w-overlay_w)/2:$TOP_PADDING[with_app_download];
+    [with_app_download][vox_logo]overlay=$VOX_LOGO_IMAGE_POSITION_X:$VOX_LOGO_IMAGE_POSITION_Y[with_vox_logo];
+    [with_vox_logo]drawtext=fontsize=$MADE_WITH_TEXT_FONT_SIZE:fontcolor=$MADE_WITH_TEXT_COLOR:x=$MADE_WITH_TEXT_POSITION_X:y=$MADE_WITH_TEXT_POSITION_Y:text='Made with VOX AI':boxborderw=5
+    [output]
+  " \
+  -map "[output]" -map "5:a" -shortest -t "$DURATION" -c:v libx264 -pix_fmt yuv420p -c:a aac "$OUTPUT_FILE"

@@ -26,3 +26,5 @@ env/
 *.log
 *.tmp
 *.swp
+video_generation/audio.wav
+video_generation/output.mp4
