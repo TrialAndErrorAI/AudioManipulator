@@ -94,7 +94,7 @@ def main():
         "-filter_complex",
         f"""
         [0]scale={OUTPUT_WIDTH}:{OUTPUT_HEIGHT},setsar=1[bg];
-        [1]scale={VINYL_SIZE}:{VINYL_SIZE},loop=-1:$((30*DURATION))[rotating];
+        [1]scale={VINYL_SIZE}:{VINYL_SIZE},loop=-1:$((30*{DURATION}))[rotating];
         [bg][rotating]overlay=x={VINYL_POSITION_X}:y={VINYL_POSITION_Y}[bg_with_rotating];
         [2]scale={ALBUM_COVER_SIZE}:-1[ovrl];
         [bg_with_rotating][ovrl]overlay=x={ALBUM_POSITION_X}:y={ALBUM_POSITION_Y}[with_cover];
