@@ -184,22 +184,22 @@ async def download_audio(input_url: str):
 
             logger.info(f"Audio downloaded successfully. Saved as: {newPath}")
          else:
-            raise Exception("Failed to download audio after several attempts.")
+            return await download_video(input_url)
 
       else:
          logger.warn(f"API request succeeded, but status is not 'stream'. Status: {response_data['status']}")
+         return await download_video(input_url)
    else:
       logger.error("Failed to download audio after several attempts.")
+      return await download_video(input_url)
 
    return {
       "file_path": newPath
    }
 
-   if filename is None:
-      raise Exception("Failed to download audio.")
-
 @app.post("/download_audio_youtube")
 async def download_video(video_url: str): 
+   logger.info(f"Downloading audio from YouTube using yt-dl, URL: {video_url}")
    short_rand_string = str(int(time.time()))
    path = APPLIO_AUDIO_OUTPUT_PATH + 'audio_' + short_rand_string
    
@@ -212,7 +212,7 @@ async def download_video(video_url: str):
    logger.info(f"Audio downloaded successfully from YouTube using yt-dl. Saved in: {path}")
    
    return {
-      "file_path": path
+      "file_path": path + ".mp3"
    }
 
 @app.post("/download_audio_file")
