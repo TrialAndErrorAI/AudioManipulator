@@ -202,8 +202,9 @@ async def download_audio(input_url: str):
 @app.post("/download_audio_youtube")
 async def download_video(video_url: str): 
    short_rand_string = str(int(time.time()))
-   path = APPLIO_AUDIO_OUTPUT_PATH + 'audio_' + short_rand_string + '.mp3'
+   path = APPLIO_AUDIO_OUTPUT_PATH + 'audio_' + short_rand_string
    ydl_opts = {
+      'verbose': True,
       'format': 'bestaudio/best',
       'postprocessors': [{
          'key': 'FFmpegExtractAudio',
