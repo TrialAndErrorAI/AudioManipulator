@@ -174,16 +174,21 @@ async def download_audio(input_url: str):
                # need a temp random filename
                filename = f"audio_{random.randint(1000, 9999)}.wav"
 
-            newPath = os.path.join(APPLIO_AUDIO_OUTPUT_PATH, filename)
-            logger.info(f"Downloading audio to: {newPath}")
-            os.makedirs(os.path.dirname(newPath), exist_ok=True)
+            try:   
+               newPath = os.path.join(APPLIO_AUDIO_OUTPUT_PATH, filename)
+               logger.info(f"Downloading audio to: {newPath}")
+               os.makedirs(os.path.dirname(newPath), exist_ok=True)
 
-            with open(newPath, 'wb') as f:
-               for chunk in responseAudio.iter_content(1024):
-                  f.write(chunk)
+               with open(newPath, 'wb') as f:
+                  for chunk in responseAudio.iter_content(1024):
+                     f.write(chunk)
 
-            logger.info(f"Audio downloaded successfully. Saved as: {newPath}")
+               logger.info(f"Audio downloaded successfully. Saved as: {newPath}")
+            except Exception as e:
+               logger.error(f"An error occurred while writing the audio file: {e}")
+               return await download_video(input_url)
          else:
+            logger.error("Status code is not 200.")
             return await download_video(input_url)
 
       else:
